@@ -14,7 +14,10 @@
  */
 package org.thunderdog.challegram.ui;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.net.VpnService;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -34,6 +37,7 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.MoreDelegate;
 import org.thunderdog.challegram.singbox.ProxyLatencyMonitor;
 import org.thunderdog.challegram.singbox.ProxySubscriptionManager;
+import org.thunderdog.challegram.singbox.SingBoxManager;
 import org.thunderdog.challegram.telegram.ConnectionListener;
 import org.thunderdog.challegram.telegram.ConnectionState;
 import org.thunderdog.challegram.telegram.GlobalProxyPingListener;
@@ -52,7 +56,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -418,6 +421,15 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     };
   }
 
+  private static ListItem[] newVpnModeItems () {
+    return new ListItem[] {
+      new ListItem(ListItem.TYPE_SHADOW_TOP),
+      new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_proxyVpnMode, 0, R.string.ProxyVpnMode),
+      new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+      new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyVpnModeHint)
+    };
+  }
+
   private void checkAutoSwitchItems () {
     boolean canSwitchAutomatically = !proxies.isEmpty();
     if (this.hasProxyAutoSwitchSettings != canSwitchAutomatically) {
@@ -483,6 +495,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     if (hasProxyAutoSwitchSettings) {
       Collections.addAll(items, newAutoSwitchItems());
     }
+    Collections.addAll(items, newVpnModeItems());
 
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProxyConnections));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -506,6 +519,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         final int itemId = item.getId();
         if (itemId == R.id.btn_proxyAutoSwitch) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY), isUpdate);
+        } else if (itemId == R.id.btn_proxyVpnMode) {
+          view.getToggler().setRadioEnabled(Settings.instance().isSingBoxVpnModeEnabled(), isUpdate);
         } else if (itemId == R.id.btn_noProxy || itemId == R.id.btn_proxy) {
           Settings.Proxy proxy = (Settings.Proxy) item.getData();
           if (proxy != null) {
@@ -858,6 +873,27 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     final int viewId = v.getId();
     if (viewId == R.id.btn_noProxy) {
       Settings.instance().disableProxy();
+    } else if (viewId == R.id.btn_proxyVpnMode) {
+      boolean enabled = Settings.instance().isSingBoxVpnModeEnabled();
+      if (!enabled) {
+        Intent prepareIntent = VpnService.prepare(context);
+        if (prepareIntent != null) {
+          prepareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          context.startActivity(prepareIntent);
+          UI.showToast(R.string.ProxyVpnModePermissionRequired, Toast.LENGTH_SHORT);
+          int vpnModeIndex = adapter.indexOfViewById(R.id.btn_proxyVpnMode);
+          if (vpnModeIndex != -1) {
+            adapter.updateValuedSettingByPosition(vpnModeIndex);
+          }
+          return;
+        }
+      }
+      Settings.instance().setSingBoxVpnModeEnabled(!enabled);
+      SingBoxManager.instance().onVpnModeChangedByUser();
+      int vpnModeIndex = adapter.indexOfViewById(R.id.btn_proxyVpnMode);
+      if (vpnModeIndex != -1) {
+        adapter.updateValuedSettingByPosition(vpnModeIndex);
+      }
     } else if (viewId == R.id.btn_proxyAutoSwitch) {
       boolean res = adapter.toggleView(v);
       if (res) {

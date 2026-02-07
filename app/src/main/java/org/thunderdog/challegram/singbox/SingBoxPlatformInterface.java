@@ -15,10 +15,12 @@ package org.thunderdog.challegram.singbox;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
+import android.net.VpnService;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
 import org.thunderdog.challegram.Log;
+import org.thunderdog.challegram.unsorted.Settings;
 
 import java.security.KeyStore;
 import java.security.cert.Certificate;
@@ -33,12 +35,15 @@ import io.nekohasekai.libbox.LocalDNSTransport;
 import io.nekohasekai.libbox.NetworkInterfaceIterator;
 import io.nekohasekai.libbox.Notification;
 import io.nekohasekai.libbox.PlatformInterface;
+import io.nekohasekai.libbox.RoutePrefixIterator;
 import io.nekohasekai.libbox.StringIterator;
 import io.nekohasekai.libbox.TunOptions;
 import io.nekohasekai.libbox.WIFIState;
 
 public class SingBoxPlatformInterface implements PlatformInterface {
   private final Context context;
+  private final Object tunLock = new Object();
+  private ParcelFileDescriptor tunInterface;
 
   public SingBoxPlatformInterface (Context context) {
     this.context = context.getApplicationContext();
@@ -46,8 +51,14 @@ public class SingBoxPlatformInterface implements PlatformInterface {
 
   @Override
   public void autoDetectInterfaceControl (int fd) throws Exception {
-    // Bind socket to default network so outbound connections use the correct interface.
-    // In VPN mode this prevents routing loops; in bridge mode it ensures proper routing.
+    // In VPN mode, protect outbound sockets from being captured by our own VPN tunnel.
+    SingBoxVpnService vpnService = SingBoxVpnService.instance();
+    if (vpnService != null && vpnService.protect(fd)) {
+      Log.i("sing-box: autoDetectInterfaceControl fd=%d protected by VPN service", fd);
+      return;
+    }
+
+    // Bridge mode fallback: bind socket to active network.
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -121,7 +132,49 @@ public class SingBoxPlatformInterface implements PlatformInterface {
 
   @Override
   public int openTun (TunOptions options) throws Exception {
-    throw new UnsupportedOperationException("TUN not supported in bridge mode");
+    SingBoxVpnService service = SingBoxVpnService.waitForRunning(10_000);
+    if (service == null) {
+      throw new IllegalStateException("VPN service is not running");
+    }
+
+    VpnService.Builder builder = service.new Builder();
+    builder.setSession("SingChat sing-box");
+    if (options.getMTU() > 0) {
+      builder.setMtu(options.getMTU());
+    }
+
+    addAddresses(builder, options.getInet4Address());
+    addAddresses(builder, options.getInet6Address());
+
+    if (options.getAutoRoute()) {
+      addRoutes(builder, options.getInet4RouteAddress());
+      addRoutes(builder, options.getInet6RouteAddress());
+      addRoutes(builder, options.getInet4RouteRange());
+      addRoutes(builder, options.getInet6RouteRange());
+    }
+
+    try {
+      io.nekohasekai.libbox.StringBox dnsServerBox = options.getDNSServerAddress();
+      String dnsServer = dnsServerBox != null ? dnsServerBox.getValue() : null;
+      if (dnsServer != null && !dnsServer.isEmpty()) {
+        builder.addDnsServer(dnsServer);
+      }
+    } catch (Exception e) {
+      Log.w("sing-box: unable to configure DNS server for tun: %s", e.getMessage());
+    }
+
+    applyPackageRules(builder, options);
+
+    ParcelFileDescriptor pfd = builder.establish();
+    if (pfd == null) {
+      throw new IllegalStateException("VpnService.Builder.establish() returned null");
+    }
+
+    synchronized (tunLock) {
+      closeTunLocked();
+      tunInterface = pfd;
+      return tunInterface.getFd();
+    }
   }
 
   @Override
@@ -189,11 +242,80 @@ public class SingBoxPlatformInterface implements PlatformInterface {
 
   @Override
   public boolean usePlatformAutoDetectInterfaceControl () {
-    return false; // Bridge mode: use system default routing, no interface binding needed
+    return Settings.instance().isSingBoxVpnModeEnabled();
   }
 
   @Override
   public boolean useProcFS () {
     return false;
+  }
+
+  public void closeTun () {
+    synchronized (tunLock) {
+      closeTunLocked();
+    }
+  }
+
+  private void closeTunLocked () {
+    if (tunInterface != null) {
+      try {
+        tunInterface.close();
+      } catch (Exception ignored) { }
+      tunInterface = null;
+    }
+  }
+
+  private static void addAddresses (VpnService.Builder builder, RoutePrefixIterator iterator) {
+    if (iterator == null) return;
+    while (iterator.hasNext()) {
+      io.nekohasekai.libbox.RoutePrefix prefix = iterator.next();
+      if (prefix == null) continue;
+      try {
+        builder.addAddress(prefix.address(), prefix.prefix());
+      } catch (Exception e) {
+        Log.w("sing-box: skip tun address %s/%d: %s", prefix.address(), prefix.prefix(), e.getMessage());
+      }
+    }
+  }
+
+  private static void addRoutes (VpnService.Builder builder, RoutePrefixIterator iterator) {
+    if (iterator == null) return;
+    while (iterator.hasNext()) {
+      io.nekohasekai.libbox.RoutePrefix prefix = iterator.next();
+      if (prefix == null) continue;
+      try {
+        builder.addRoute(prefix.address(), prefix.prefix());
+      } catch (Exception e) {
+        Log.w("sing-box: skip tun route %s/%d: %s", prefix.address(), prefix.prefix(), e.getMessage());
+      }
+    }
+  }
+
+  private void applyPackageRules (VpnService.Builder builder, TunOptions options) {
+    StringIterator include = options.getIncludePackage();
+    boolean hasInclude = include != null && include.hasNext();
+    try {
+      if (hasInclude) {
+        while (include.hasNext()) {
+          String packageName = include.next();
+          if (packageName != null && !packageName.isEmpty()) {
+            builder.addAllowedApplication(packageName);
+          }
+        }
+        return;
+      }
+
+      StringIterator exclude = options.getExcludePackage();
+      if (exclude != null) {
+        while (exclude.hasNext()) {
+          String packageName = exclude.next();
+          if (packageName != null && !packageName.isEmpty()) {
+            builder.addDisallowedApplication(packageName);
+          }
+        }
+      }
+    } catch (Exception e) {
+      Log.w("sing-box: apply package rule failed: %s", e.getMessage());
+    }
   }
 }

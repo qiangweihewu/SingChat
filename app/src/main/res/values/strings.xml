@@ -1775,6 +1775,9 @@
   <string name="ProxySettings">Proxy settings</string>
   <string name="ProxyAutoSwitch">Switch automatically</string>
   <string name="ProxyAutoSwitchHint">Automatically try different connections when the app takes too long to connect. This may increase the time needed to establish connection on weak networks.</string>
+  <string name="ProxyVpnMode">VPN mode (full traffic takeover)</string>
+  <string name="ProxyVpnModeHint">When enabled, sing-box runs in Android VPN mode (tun) and can route all device traffic through the selected sing-box node.</string>
+  <string name="ProxyVpnModePermissionRequired">Grant VPN permission first, then enable VPN mode again.</string>
   <string name="ProxySubscriptions">Subscriptions</string>
   <string name="ProxyAddSubscription">Add subscription URL</string>
   <string name="ProxySubscriptionInfo">Subscription URLs provide proxy lists that update automatically.</string>

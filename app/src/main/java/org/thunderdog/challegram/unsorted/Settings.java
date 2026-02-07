@@ -4444,6 +4444,8 @@ public class Settings {
   private static final String KEY_PROXY_CURRENT = "proxy_current";
   // type:byte description: Global proxy settings
   private static final String KEY_PROXY_SETTINGS = "proxy_settings";
+  // type:byte description: sing-box runs in VPN mode (tun) instead of local SOCKS bridge only
+  private static final String KEY_PROXY_VPN_MODE = "proxy_vpn_mode";
   // type:int[] description: Proxy order
   private static final String KEY_PROXY_ORDER = "proxy_order";
 
@@ -4550,6 +4552,14 @@ public class Settings {
    */
   public boolean checkProxySetting (int proxyFlag) {
     return (getProxySettings() & proxyFlag) != 0;
+  }
+
+  public boolean isSingBoxVpnModeEnabled () {
+    return pmc.getByte(KEY_PROXY_VPN_MODE, (byte) 0) == (byte) 1;
+  }
+
+  public void setSingBoxVpnModeEnabled (boolean enabled) {
+    pmc.putByte(KEY_PROXY_VPN_MODE, enabled ? (byte) 1 : (byte) 0);
   }
 
   /**

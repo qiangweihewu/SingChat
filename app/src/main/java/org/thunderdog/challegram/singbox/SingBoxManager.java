@@ -98,6 +98,7 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
 
   public void restoreActiveInstance () {
     if (!initialized) return;
+    updateVpnServiceState();
 
     // Crash guard: if we crashed during previous restore, don't try again
     SharedPreferences prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -136,6 +137,12 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
     executor.execute(() -> {
       Settings.Proxy proxy = Settings.instance().getProxyConfig(proxyId);
       if (proxy == null || !proxy.isSingBox()) return;
+      boolean vpnMode = Settings.instance().isSingBoxVpnModeEnabled();
+      if (vpnMode) {
+        SingBoxVpnService.start(appContext);
+      } else {
+        platformInterface.closeTun();
+      }
 
       int localPort = allocatePort();
       if (localPort <= 0) {
@@ -154,7 +161,9 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
         if (logFile.exists()) {
           logFile.delete();
         }
-        String fullConfig = SingBoxConfigBuilder.buildFullConfig(localPort, proxy.singBoxOutboundJson, logFilePath);
+        String fullConfig = vpnMode
+          ? SingBoxConfigBuilder.buildFullTunConfig(localPort, proxy.singBoxOutboundJson, logFilePath)
+          : SingBoxConfigBuilder.buildFullConfig(localPort, proxy.singBoxOutboundJson, logFilePath);
 
         // Validate config
         Log.i("sing-box: validating config for proxy %d", proxyId);
@@ -453,6 +462,7 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
   public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.InternalLinkTypeProxy proxy,
       @Nullable String description, boolean isCurrent, boolean isNewAdd) {
     if (isDispatchingToTdlib) return;
+    updateVpnServiceState();
     if (isCurrent) {
       Settings.Proxy proxyConfig = Settings.instance().getProxyConfig(proxyId);
       if (proxyConfig != null && proxyConfig.isSingBox()) {
@@ -468,6 +478,7 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
 
   @Override
   public void onProxyAvailabilityChanged (boolean isAvailable) {
+    updateVpnServiceState();
     if (!isAvailable) {
       stopAllInstances();
     }
@@ -476,6 +487,7 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
   @Override
   public void onProxyAdded (Settings.Proxy proxy, boolean isCurrent) {
     if (isDispatchingToTdlib) return;
+    updateVpnServiceState();
     if (isCurrent && proxy.isSingBox()) {
       if (runningInstances.containsKey(proxy.id) || startingProxyId == proxy.id) return;
       // Stop other sing-box instances before starting the new one
@@ -487,6 +499,45 @@ public class SingBoxManager implements Settings.ProxyChangeListener {
   private void stopAllInstances () {
     for (Integer proxyId : runningInstances.keySet()) {
       stopInstance(proxyId);
+    }
+    platformInterface.closeTun();
+    updateVpnServiceState();
+  }
+
+  public void onVpnModeChangedByUser () {
+    if (!initialized) {
+      return;
+    }
+    Settings settings = Settings.instance();
+    int effectiveProxyId = settings.getEffectiveProxyId();
+    Settings.Proxy proxyConfig = settings.getProxyConfig(effectiveProxyId);
+    if (effectiveProxyId != Settings.PROXY_ID_NONE && proxyConfig != null && proxyConfig.isSingBox()) {
+      stopAllInstances();
+      startInstance(effectiveProxyId, null);
+    } else {
+      stopAllInstances();
+    }
+  }
+
+  private void updateVpnServiceState () {
+    if (!initialized) {
+      return;
+    }
+    Settings settings = Settings.instance();
+    boolean shouldRun = settings.isSingBoxVpnModeEnabled();
+    int effectiveProxyId = settings.getEffectiveProxyId();
+    if (effectiveProxyId == Settings.PROXY_ID_NONE) {
+      shouldRun = false;
+    } else {
+      Settings.Proxy proxy = settings.getProxyConfig(effectiveProxyId);
+      shouldRun = shouldRun && proxy != null && proxy.isSingBox();
+    }
+
+    if (shouldRun) {
+      SingBoxVpnService.start(appContext);
+    } else {
+      platformInterface.closeTun();
+      SingBoxVpnService.stop(appContext);
     }
   }
 

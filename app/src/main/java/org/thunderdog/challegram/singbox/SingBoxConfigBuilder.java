@@ -306,4 +306,78 @@ public class SingBoxConfigBuilder {
 
     return config.toString();
   }
+
+  public static @NonNull String buildFullTunConfig (int localPort, @NonNull String outboundJson, @NonNull String logFilePath) throws JSONException {
+    JSONObject config = new JSONObject();
+
+    JSONObject log = new JSONObject();
+    log.put("level", "debug");
+    log.put("timestamp", true);
+    if (!logFilePath.isEmpty()) {
+      log.put("output", logFilePath);
+    }
+    config.put("log", log);
+
+    JSONObject dns = new JSONObject();
+    JSONArray dnsServers = new JSONArray();
+    JSONObject dnsProxy = new JSONObject();
+    dnsProxy.put("tag", "dns-proxy");
+    dnsProxy.put("address", "8.8.8.8");
+    dnsProxy.put("detour", "proxy");
+    dnsServers.put(dnsProxy);
+    JSONObject dnsDirect = new JSONObject();
+    dnsDirect.put("tag", "dns-direct");
+    dnsDirect.put("address", "local");
+    dnsDirect.put("detour", "direct");
+    dnsServers.put(dnsDirect);
+    dns.put("servers", dnsServers);
+    JSONArray dnsRules = new JSONArray();
+    JSONObject dnsRule = new JSONObject();
+    dnsRule.put("outbound", new JSONArray().put("proxy"));
+    dnsRule.put("server", "dns-direct");
+    dnsRules.put(dnsRule);
+    dns.put("rules", dnsRules);
+    config.put("dns", dns);
+
+    JSONArray inbounds = new JSONArray();
+    JSONObject tunInbound = new JSONObject();
+    tunInbound.put("type", "tun");
+    tunInbound.put("tag", "tun-in");
+    tunInbound.put("inet4_address", "172.19.0.1/30");
+    tunInbound.put("auto_route", true);
+    tunInbound.put("strict_route", true);
+    tunInbound.put("stack", "system");
+    tunInbound.put("sniff", true);
+    inbounds.put(tunInbound);
+
+    JSONObject socksInbound = new JSONObject();
+    socksInbound.put("type", "socks");
+    socksInbound.put("tag", "socks-in");
+    socksInbound.put("listen", "127.0.0.1");
+    socksInbound.put("listen_port", localPort);
+    inbounds.put(socksInbound);
+    config.put("inbounds", inbounds);
+
+    JSONObject outbound = new JSONObject(outboundJson);
+    JSONObject directOutbound = new JSONObject();
+    directOutbound.put("type", "direct");
+    directOutbound.put("tag", "direct");
+    JSONObject dnsOutbound = new JSONObject();
+    dnsOutbound.put("type", "dns");
+    dnsOutbound.put("tag", "dns-out");
+    config.put("outbounds", new JSONArray().put(outbound).put(directOutbound).put(dnsOutbound));
+
+    JSONObject route = new JSONObject();
+    route.put("auto_detect_interface", true);
+    route.put("final", "proxy");
+    JSONArray routeRules = new JSONArray();
+    JSONObject dnsRouteRule = new JSONObject();
+    dnsRouteRule.put("protocol", "dns");
+    dnsRouteRule.put("outbound", "dns-out");
+    routeRules.put(dnsRouteRule);
+    route.put("rules", routeRules);
+    config.put("route", route);
+
+    return config.toString();
+  }
 }
