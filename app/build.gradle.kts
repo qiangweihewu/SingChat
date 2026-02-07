@@ -85,6 +85,7 @@ android {
 
     buildConfigString("TELEGRAM_RESOURCES_CHANNEL", Telegram.RESOURCES_CHANNEL)
     buildConfigString("TELEGRAM_UPDATES_CHANNEL", Telegram.UPDATES_CHANNEL)
+    buildConfigString("OUTPUT_FILE_NAME_PREFIX", config.outputFileNamePrefix)
 
     buildConfigInt("EMOJI_VERSION", config.emojiVersion)
     buildConfigString("EMOJI_BUILTIN_ID", Emoji.BUILTIN_ID)
@@ -476,6 +477,8 @@ dependencies {
   implementation(project(":vkryl:leveldb"))
   implementation(project(":vkryl:android"))
   implementation(project(":vkryl:td"))
+  // sing-box: local SOCKS5 bridge for VLESS/SS/Trojan/VMess protocols
+  implementation(files("libs/libbox.aar"))
   // AndroidX: https://developer.android.com/jetpack/androidx/versions
   flavorImplementation(
     libs.androidx.activity.legacy,

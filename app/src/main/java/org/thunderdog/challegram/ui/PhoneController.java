@@ -343,6 +343,10 @@ public class PhoneController extends EditBaseController<Void> implements Setting
       this.baseItems.add(hintItem);
     }
 
+    if (mode == MODE_LOGIN) {
+      this.baseItems.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_qrCodeLogin, R.drawable.xt3000_baseline_qrcode_scan_24, R.string.LogInByQrCode));
+    }
+
     if (isAccountAdd) {
       // this.baseItems.add(new SettingItem(SettingItem.TYPE_CHECKBOX_OPTION_REVERSE, R.id.btn_syncContacts, 0, R.string.SyncContacts, R.id.btn_syncContacts, true));
     }
@@ -547,6 +551,8 @@ public class PhoneController extends EditBaseController<Void> implements Setting
     final int viewId = v.getId();
     if (viewId == R.id.btn_syncContacts) {
       adapter.toggleView(v);
+    } else if (viewId == R.id.btn_qrCodeLogin) {
+      requestQrCodeLogin();
     } else if (viewId == R.id.result) {
       ListItem item = (ListItem) v.getTag();
       if (item != null && item.getData() != null) {
@@ -824,6 +830,39 @@ public class PhoneController extends EditBaseController<Void> implements Setting
   }
 
   // Logic stuff
+
+  private void requestQrCodeLogin () {
+    if (isInProgress()) return;
+    setInProgress(true);
+    long[] otherUserIds = getOtherActiveUserIds();
+    tdlib.client().send(new TdApi.RequestQrCodeAuthentication(otherUserIds), result -> runOnUiThreadOptional(() -> {
+      setInProgress(false);
+      if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+        showError(TD.toErrorString(result));
+      }
+      // On success, auth state changes to WaitOtherDeviceConfirmation
+      // MainActivity will navigate to QrCodeLoginController
+    }));
+  }
+
+  private long[] getOtherActiveUserIds () {
+    ArrayList<TdlibAccount> accounts = tdlib.context().getActiveAccounts();
+    int currentAccountId = tdlib.account().id;
+    ArrayList<Long> userIds = new ArrayList<>();
+    for (TdlibAccount account : accounts) {
+      if (account.id != currentAccountId) {
+        long userId = account.getKnownUserId();
+        if (userId != 0) {
+          userIds.add(userId);
+        }
+      }
+    }
+    long[] result = new long[userIds.size()];
+    for (int i = 0; i < userIds.size(); i++) {
+      result[i] = userIds.get(i);
+    }
+    return result;
+  }
 
   @Override
   protected boolean onDoneClick () {

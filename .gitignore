@@ -3,6 +3,7 @@
 .gradle
 .kotlin
 .idea
+/.vscode/
 
 build
 .cxx
@@ -16,5 +17,8 @@ obj
 
 /captures
 /local.properties
+/keystore.properties
+/docs/
+/sing-box/
 
 libc++_shared.so

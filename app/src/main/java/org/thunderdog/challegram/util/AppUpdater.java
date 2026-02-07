@@ -326,7 +326,7 @@ public class AppUpdater implements InstallStateUpdatedListener, FileUpdateListen
       onUpdateUnavailable();
       return;
     }
-    if (BuildConfig.EXPERIMENTAL || (!AppInstallationUtil.allowInAppTelegramUpdates(UI.getAppContext()) && !tdlib.hasUrgentInAppUpdate())) {
+    if (!AppInstallationUtil.allowInAppTelegramUpdates(UI.getAppContext()) && !tdlib.hasUrgentInAppUpdate()) {
       onUpdateUnavailable();
       return;
     }

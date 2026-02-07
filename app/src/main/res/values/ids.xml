@@ -122,6 +122,20 @@
   <item type="id" name="edit_proxy_password" />
   <item type="id" name="edit_proxy_secret" />
 
+  <item type="id" name="edit_singbox_server" />
+  <item type="id" name="edit_singbox_port" />
+  <item type="id" name="edit_singbox_uuid" />
+  <item type="id" name="edit_singbox_password" />
+  <item type="id" name="edit_singbox_method" />
+  <item type="id" name="edit_singbox_flow" />
+  <item type="id" name="edit_singbox_sni" />
+  <item type="id" name="edit_singbox_transport" />
+  <item type="id" name="edit_singbox_path" />
+  <item type="id" name="edit_singbox_tls" />
+  <item type="id" name="edit_singbox_alterid" />
+  <item type="id" name="edit_singbox_security" />
+  <item type="id" name="edit_singbox_link" />
+
   <item type="id" name="controller_msgTranslate" />
   <item type="id" name="controller_simplePager" />
   <item type="id" name="controller_logOut" />
@@ -224,7 +238,9 @@
   <item type="id" name="controller_name" />
   <item type="id" name="controller_loginPassword" />
   <item type="id" name="controller_proxy" />
+  <item type="id" name="controller_proxySingBox" />
   <item type="id" name="controller_proxyList" />
+  <item type="id" name="controller_qrCodeLogin" />
 
 
   <item type="id" name="controller_password" />
@@ -617,6 +633,14 @@
   <item type="id" name="btn_proxyTelegram" />
   <item type="id" name="btn_proxyHttp" />
   <item type="id" name="btn_proxyQr" />
+  <item type="id" name="btn_proxySingBox" />
+  <item type="id" name="btn_addSubscription" />
+  <item type="id" name="btn_subscription" />
+  <item type="id" name="btn_refreshSubscription" />
+  <item type="id" name="btn_refreshAllSubscriptions" />
+  <item type="id" name="btn_pingAll" />
+  <item type="id" name="btn_qrCodeLogin" />
+  <item type="id" name="btn_loginByPhone" />
   <item type="id" name="btn_showAdvanced" />
   <item type="id" name="btn_autoplayGIFs" />
   <item type="id" name="btn_quickTranslate" />

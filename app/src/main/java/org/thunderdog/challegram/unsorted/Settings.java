@@ -4461,6 +4461,24 @@ public class Settings {
   private static final String KEY_PROXY_PREFIX_LAST_CONNECTION = KEY_PROXY_ITEM_PREFIX + "connect_";
   // type:long[] description: {time pong received, ping value}
   private static final String KEY_PROXY_PREFIX_LAST_PING = KEY_PROXY_ITEM_PREFIX + "ping_";
+  // type:string description: sing-box outbound type (vless, shadowsocks, trojan, vmess)
+  private static final String KEY_PROXY_PREFIX_SINGBOX_TYPE = KEY_PROXY_ITEM_PREFIX + "sbtype_";
+  // type:string description: sing-box outbound JSON configuration
+  private static final String KEY_PROXY_PREFIX_SINGBOX_JSON = KEY_PROXY_ITEM_PREFIX + "sbjson_";
+  // type:string description: sing-box remote server address (display)
+  private static final String KEY_PROXY_PREFIX_SINGBOX_SERVER = KEY_PROXY_ITEM_PREFIX + "sbsrv_";
+  // type:int description: sing-box remote server port (display)
+  private static final String KEY_PROXY_PREFIX_SINGBOX_PORT = KEY_PROXY_ITEM_PREFIX + "sbport_";
+
+  // Subscription storage
+  private static final String KEY_SUBSCRIPTION_LAST_ID = "proxy_sub_id";
+  private static final String KEY_SUBSCRIPTION_PREFIX_URL = "proxy_sub_url_";
+  private static final String KEY_SUBSCRIPTION_PREFIX_NAME = "proxy_sub_name_";
+  private static final String KEY_SUBSCRIPTION_PREFIX_LAST_UPDATE = "proxy_sub_upd_";
+  private static final String KEY_SUBSCRIPTION_PREFIX_INTERVAL = "proxy_sub_intv_";
+  private static final String KEY_SUBSCRIPTION_PREFIX_PROXY_IDS = "proxy_sub_pids_";
+  // Per-proxy subscription link
+  private static final String KEY_PROXY_PREFIX_SUBSCRIPTION_ID = KEY_PROXY_ITEM_PREFIX + "subid_";
 
   public static final int PROXY_FLAG_ENABLED = 1;
   public static final int PROXY_FLAG_USE_FOR_CALLS = 1 << 1;
@@ -4565,6 +4583,20 @@ public class Settings {
     }
   }
 
+  public void enableProxy (int proxyId) {
+    Proxy proxy = getProxyConfig(proxyId);
+    if (proxy == null) return;
+    int settings = getProxySettings();
+    LevelDB editor = pmc.edit();
+    if ((settings & PROXY_FLAG_ENABLED) == 0) {
+      settings |= PROXY_FLAG_ENABLED;
+      editor.putByte(KEY_PROXY_SETTINGS, (byte) settings);
+    }
+    editor.putInt(KEY_PROXY_CURRENT, proxyId);
+    editor.apply();
+    dispatchProxyConfiguration(proxyId, proxy.proxy, proxy.description, true, false);
+  }
+
   private boolean setProxySettingImpl (final int oldSettings, int setting, boolean enabled) {
     int newSettings = BitwiseUtils.setFlag(oldSettings, setting, enabled);
     if (newSettings == oldSettings) {
@@ -4607,6 +4639,9 @@ public class Settings {
       Proxy proxy = readProxy(proxyId, pmc.getByteArray(KEY_PROXY_PREFIX_CONFIG + proxyId), null);
       if (proxy == null) {
         Log.e("Configuration unavailable, proxyId:%d", proxyId);
+      } else {
+        loadSingBoxMetadata(proxy);
+        proxy.description = pmc.getString(KEY_PROXY_PREFIX_DESCRIPTION + proxyId, null);
       }
       return proxy;
     }
@@ -4661,6 +4696,11 @@ public class Settings {
             http.password = blob.readString();
           http.httpOnly = blob.readByte() == (byte) 1;
           type = http;
+          break;
+        }
+        case Proxy.TYPE_SINGBOX: {
+          // sing-box proxies use a local SOCKS5 bridge; actual config is stored separately
+          type = new TdApi.ProxyTypeSocks5("", "");
           break;
         }
         default:
@@ -4921,12 +4961,129 @@ public class Settings {
 
     editor.apply();
 
-    if (isNewAdd) {
-      dispatchProxyAdded(new Proxy(proxyId, proxy, proxyDescription), setAsCurrent);
+    final boolean finalIsNewAdd = isNewAdd;
+    final boolean isCurrent = setAsCurrent || (availableProxyId == proxyId && (proxySettings & PROXY_FLAG_ENABLED) != 0);
+    final boolean wasEmpty = availableProxyId == PROXY_ID_NONE;
+    final String finalDescription = proxyDescription;
+    Runnable dispatchRunnable = () -> {
+      if (finalIsNewAdd) {
+        dispatchProxyAdded(new Proxy(proxyId, proxy, finalDescription), isCurrent);
+      }
+      dispatchProxyConfiguration(proxyId, proxy, finalDescription, isCurrent, finalIsNewAdd);
+      if (wasEmpty) {
+        dispatchProxyAvailabilityChanged(true);
+      }
+    };
+    if (UI.inUiThread()) {
+      dispatchRunnable.run();
+    } else {
+      UI.post(dispatchRunnable);
     }
-    dispatchProxyConfiguration(proxyId, proxy, proxyDescription, setAsCurrent || (availableProxyId == proxyId && (proxySettings & PROXY_FLAG_ENABLED) != 0), isNewAdd);
-    if (availableProxyId == PROXY_ID_NONE) {
-      dispatchProxyAvailabilityChanged(true);
+
+    return proxyId;
+  }
+
+  private void loadSingBoxMetadata (@NonNull Proxy proxy) {
+    String singBoxType = pmc.getString(KEY_PROXY_PREFIX_SINGBOX_TYPE + proxy.id, null);
+    if (singBoxType != null) {
+      proxy.singBoxOutboundType = singBoxType;
+      proxy.singBoxOutboundJson = pmc.getString(KEY_PROXY_PREFIX_SINGBOX_JSON + proxy.id, null);
+      proxy.singBoxServer = pmc.getString(KEY_PROXY_PREFIX_SINGBOX_SERVER + proxy.id, null);
+      proxy.singBoxServerPort = pmc.getInt(KEY_PROXY_PREFIX_SINGBOX_PORT + proxy.id, 0);
+    }
+    proxy.subscriptionId = pmc.getInt(KEY_PROXY_PREFIX_SUBSCRIPTION_ID + proxy.id, 0);
+  }
+
+  public int addOrUpdateSingBoxProxy (@NonNull String outboundType, @NonNull String outboundJson,
+      @NonNull String server, int serverPort, @Nullable String proxyDescription,
+      boolean setAsCurrent, int existingProxyId) {
+    // sing-box proxy uses 127.0.0.1 with a placeholder port (will be updated at runtime)
+    TdApi.InternalLinkTypeProxy localProxy = new TdApi.InternalLinkTypeProxy(
+      "127.0.0.1", 10808, new TdApi.ProxyTypeSocks5("", "")
+    );
+
+    // Serialize with TYPE_SINGBOX marker
+    final Blob blob = new Blob(Blob.sizeOf("127.0.0.1", false) + 4 + 1);
+    blob.writeString("127.0.0.1");
+    blob.writeInt(10808);
+    blob.writeByte((byte) Proxy.TYPE_SINGBOX);
+    final byte[] data = blob.toByteArray();
+
+    final int proxyId;
+    if (proxyDescription != null) {
+      proxyDescription = proxyDescription.trim();
+    }
+
+    final long availableProxyId = getAvailableProxyId();
+    int proxySettings = getProxySettings();
+
+    final LevelDB editor = pmc.edit();
+    boolean isNewAdd = false;
+
+    if (existingProxyId != PROXY_ID_NONE) {
+      proxyId = existingProxyId;
+      editor.putByteArray(KEY_PROXY_PREFIX_CONFIG + proxyId, data);
+    } else {
+      proxyId = getInt(KEY_PROXY_LAST_ID, PROXY_ID_NONE) + 1;
+      editor.putInt(KEY_PROXY_LAST_ID, proxyId);
+      editor.putByteArray(KEY_PROXY_PREFIX_CONFIG + proxyId, data);
+      editor.removeByPrefix(KEY_PROXY_PREFIX_CONNECTION_TIME + proxyId);
+      isNewAdd = true;
+    }
+
+    // Store sing-box metadata
+    editor.putString(KEY_PROXY_PREFIX_SINGBOX_TYPE + proxyId, outboundType);
+    editor.putString(KEY_PROXY_PREFIX_SINGBOX_JSON + proxyId, outboundJson);
+    editor.putString(KEY_PROXY_PREFIX_SINGBOX_SERVER + proxyId, server);
+    editor.putInt(KEY_PROXY_PREFIX_SINGBOX_PORT + proxyId, serverPort);
+
+    if (!StringUtils.isEmpty(proxyDescription)) {
+      editor.putString(KEY_PROXY_PREFIX_DESCRIPTION + proxyId, proxyDescription);
+    } else {
+      editor.remove(KEY_PROXY_PREFIX_DESCRIPTION + proxyId);
+    }
+
+    if (setAsCurrent) {
+      if ((proxySettings & PROXY_FLAG_ENABLED) == 0) {
+        proxySettings |= PROXY_FLAG_ENABLED;
+        editor.putByte(KEY_PROXY_SETTINGS, (byte) proxySettings);
+      }
+      if (proxyId != availableProxyId) {
+        editor.putInt(KEY_PROXY_CURRENT, proxyId);
+      }
+    } else if (availableProxyId == PROXY_ID_NONE) {
+      if ((proxySettings & PROXY_FLAG_ENABLED) != 0) {
+        proxySettings &= ~PROXY_FLAG_ENABLED;
+        editor.putByte(KEY_PROXY_SETTINGS, (byte) proxySettings);
+      }
+      editor.putInt(KEY_PROXY_CURRENT, proxyId);
+    }
+
+    editor.apply();
+
+    Proxy proxyObj = new Proxy(proxyId, localProxy, proxyDescription);
+    proxyObj.singBoxOutboundType = outboundType;
+    proxyObj.singBoxOutboundJson = outboundJson;
+    proxyObj.singBoxServer = server;
+    proxyObj.singBoxServerPort = serverPort;
+
+    final boolean finalIsNewAdd = isNewAdd;
+    final boolean isCurrent = setAsCurrent || (availableProxyId == proxyId && (proxySettings & PROXY_FLAG_ENABLED) != 0);
+    final boolean wasEmpty = availableProxyId == PROXY_ID_NONE;
+    final String finalDescription = proxyDescription;
+    Runnable dispatchRunnable = () -> {
+      if (finalIsNewAdd) {
+        dispatchProxyAdded(proxyObj, isCurrent);
+      }
+      dispatchProxyConfiguration(proxyId, localProxy, finalDescription, isCurrent, finalIsNewAdd);
+      if (wasEmpty) {
+        dispatchProxyAvailabilityChanged(true);
+      }
+    };
+    if (UI.inUiThread()) {
+      dispatchRunnable.run();
+    } else {
+      UI.post(dispatchRunnable);
     }
 
     return proxyId;
@@ -4952,6 +5109,12 @@ public class Settings {
     pmc.edit();
     pmc.remove(KEY_PROXY_PREFIX_CONFIG + proxyId);
     pmc.removeByPrefix(KEY_PROXY_PREFIX_CONNECTION_TIME + proxyId);
+    // Clean up sing-box metadata if present
+    pmc.remove(KEY_PROXY_PREFIX_SINGBOX_TYPE + proxyId);
+    pmc.remove(KEY_PROXY_PREFIX_SINGBOX_JSON + proxyId);
+    pmc.remove(KEY_PROXY_PREFIX_SINGBOX_SERVER + proxyId);
+    pmc.remove(KEY_PROXY_PREFIX_SINGBOX_PORT + proxyId);
+    pmc.remove(KEY_PROXY_PREFIX_SUBSCRIPTION_ID + proxyId);
     pmc.apply();
 
     if (availableProxyId == proxyId) {
@@ -5010,7 +5173,8 @@ public class Settings {
     @IntDef({
       TYPE_SOCKS5,
       TYPE_MTPROTO,
-      TYPE_HTTP
+      TYPE_HTTP,
+      TYPE_SINGBOX
     })
     public @interface Type {
     }
@@ -5018,6 +5182,7 @@ public class Settings {
     private static final int TYPE_SOCKS5 = 1;
     private static final int TYPE_MTPROTO = 2;
     private static final int TYPE_HTTP = 3;
+    private static final int TYPE_SINGBOX = 4;
 
     private static final int ORDER_UNSET = -1;
 
@@ -5036,6 +5201,17 @@ public class Settings {
     public @Nullable TdApi.Error pingError;
     public int pingErrorCount;
     public int winState;
+
+    public @Nullable String singBoxOutboundType;
+    public @Nullable String singBoxOutboundJson;
+    public @Nullable String singBoxServer;
+    public int singBoxServerPort;
+
+    public int subscriptionId; // 0 = manual, >0 = from subscription
+
+    public boolean isSingBox () {
+      return singBoxOutboundJson != null;
+    }
 
     public Proxy (int id, @Nullable TdApi.InternalLinkTypeProxy proxy, @Nullable String description) {
       if (id != PROXY_ID_NONE && proxy == null)
@@ -5060,12 +5236,28 @@ public class Settings {
     }
 
     public boolean canUseForCalls () {
-      return proxy != null && canUseForCalls(proxy.type);
+      return proxy != null && (canUseForCalls(proxy.type) || isSingBox());
     }
 
     public CharSequence getName () {
       if (proxy == null) {
         return null;
+      }
+      if (isSingBox()) {
+        final String name = StringUtils.isEmpty(description) ? singBoxServer + ":" + singBoxServerPort : description;
+        int stringRes;
+        if ("vless".equals(singBoxOutboundType)) {
+          stringRes = R.string.ProxyVless;
+        } else if ("shadowsocks".equals(singBoxOutboundType)) {
+          stringRes = R.string.ProxyShadowsocks;
+        } else if ("trojan".equals(singBoxOutboundType)) {
+          stringRes = R.string.ProxyTrojan;
+        } else if ("vmess".equals(singBoxOutboundType)) {
+          stringRes = R.string.ProxyVmess;
+        } else {
+          stringRes = R.string.ProxySingBox;
+        }
+        return Lang.getString(stringRes, (target, argStart, argEnd, argIndex, needFakeBold) -> new CustomTypefaceSpan(null, ColorId.textLight), name);
       }
       final String name = StringUtils.isEmpty(description) ? proxy.server + ":" + proxy.port : description;
       int stringRes;
@@ -5101,6 +5293,7 @@ public class Settings {
     }
 
     public int defaultOrder () {
+      if (isSingBox()) return 4;
       return proxy != null ? Settings.getProxyDefaultOrder(proxy.type) : -1;
     }
 
@@ -5137,6 +5330,104 @@ public class Settings {
       }
       return proxy;
     }
+  }
+
+  public static class Subscription {
+    public final int id;
+    public String url;
+    public String name;
+    public long lastUpdateTime;
+    public long refreshIntervalMs;
+    public int[] proxyIds;
+
+    public Subscription (int id, String url, String name, long lastUpdateTime, long refreshIntervalMs, int[] proxyIds) {
+      this.id = id;
+      this.url = url;
+      this.name = name;
+      this.lastUpdateTime = lastUpdateTime;
+      this.refreshIntervalMs = refreshIntervalMs;
+      this.proxyIds = proxyIds;
+    }
+
+    public String getDisplayName () {
+      return name != null && !name.isEmpty() ? name : url;
+    }
+  }
+
+  // Subscription CRUD
+
+  public int addSubscription (@NonNull String url, @Nullable String name, long intervalMs) {
+    int subId = pmc.getInt(KEY_SUBSCRIPTION_LAST_ID, 0) + 1;
+    LevelDB editor = pmc.edit();
+    editor.putInt(KEY_SUBSCRIPTION_LAST_ID, subId);
+    editor.putString(KEY_SUBSCRIPTION_PREFIX_URL + subId, url);
+    if (name != null && !name.isEmpty()) {
+      editor.putString(KEY_SUBSCRIPTION_PREFIX_NAME + subId, name);
+    }
+    editor.putLong(KEY_SUBSCRIPTION_PREFIX_LAST_UPDATE + subId, 0);
+    editor.putLong(KEY_SUBSCRIPTION_PREFIX_INTERVAL + subId, intervalMs);
+    editor.putIntArray(KEY_SUBSCRIPTION_PREFIX_PROXY_IDS + subId, new int[0]);
+    editor.apply();
+    return subId;
+  }
+
+  public void removeSubscription (int subId) {
+    int[] proxyIds = pmc.getIntArray(KEY_SUBSCRIPTION_PREFIX_PROXY_IDS + subId);
+    if (proxyIds != null) {
+      for (int proxyId : proxyIds) {
+        removeProxy(proxyId);
+      }
+    }
+    LevelDB editor = pmc.edit();
+    editor.remove(KEY_SUBSCRIPTION_PREFIX_URL + subId);
+    editor.remove(KEY_SUBSCRIPTION_PREFIX_NAME + subId);
+    editor.remove(KEY_SUBSCRIPTION_PREFIX_LAST_UPDATE + subId);
+    editor.remove(KEY_SUBSCRIPTION_PREFIX_INTERVAL + subId);
+    editor.remove(KEY_SUBSCRIPTION_PREFIX_PROXY_IDS + subId);
+    editor.apply();
+  }
+
+  public @Nullable Subscription getSubscription (int subId) {
+    String url = pmc.getString(KEY_SUBSCRIPTION_PREFIX_URL + subId, null);
+    if (url == null) return null;
+    String name = pmc.getString(KEY_SUBSCRIPTION_PREFIX_NAME + subId, null);
+    long lastUpdate = pmc.getLong(KEY_SUBSCRIPTION_PREFIX_LAST_UPDATE + subId, 0);
+    long interval = pmc.getLong(KEY_SUBSCRIPTION_PREFIX_INTERVAL + subId, 86400000L);
+    int[] proxyIds = pmc.getIntArray(KEY_SUBSCRIPTION_PREFIX_PROXY_IDS + subId);
+    return new Subscription(subId, url, name, lastUpdate, interval, proxyIds != null ? proxyIds : new int[0]);
+  }
+
+  public @NonNull List<Subscription> getAvailableSubscriptions () {
+    List<Subscription> result = new ArrayList<>();
+    int lastId = pmc.getInt(KEY_SUBSCRIPTION_LAST_ID, 0);
+    for (int i = 1; i <= lastId; i++) {
+      Subscription sub = getSubscription(i);
+      if (sub != null) {
+        result.add(sub);
+      }
+    }
+    return result;
+  }
+
+  public void updateSubscriptionProxyIds (int subId, @NonNull int[] proxyIds) {
+    pmc.putIntArray(KEY_SUBSCRIPTION_PREFIX_PROXY_IDS + subId, proxyIds);
+  }
+
+  public void updateSubscriptionLastUpdate (int subId, long timestampMs) {
+    pmc.putLong(KEY_SUBSCRIPTION_PREFIX_LAST_UPDATE + subId, timestampMs);
+  }
+
+  public void setProxySubscriptionId (int proxyId, int subId) {
+    pmc.putInt(KEY_PROXY_PREFIX_SUBSCRIPTION_ID + proxyId, subId);
+  }
+
+  public int getProxySubscriptionId (int proxyId) {
+    return pmc.getInt(KEY_PROXY_PREFIX_SUBSCRIPTION_ID + proxyId, 0);
+  }
+
+  public @Nullable Subscription getSubscriptionForProxy (int proxyId) {
+    int subId = getProxySubscriptionId(proxyId);
+    return subId > 0 ? getSubscription(subId) : null;
   }
 
   /**
@@ -5192,6 +5483,7 @@ public class Settings {
         Proxy proxy = readProxy(proxyId, data, blob);
         if (proxy != null) {
           proxy.order = order != null ? ArrayUtils.indexOf(order, proxyId) : Proxy.ORDER_UNSET;
+          loadSingBoxMetadata(proxy);
           proxies.add(proxy);
         } else {
           Log.w("Removing proxy configuration, because it cannot be read, proxyId:%d", proxyId);

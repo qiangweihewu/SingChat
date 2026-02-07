@@ -315,7 +315,13 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     @Override
     public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.InternalLinkTypeProxy proxy, String description, boolean isCurrent, boolean isNewAdd) {
       if (isCurrent) {
-        for (TdlibAccount account : TdlibManager.this) {
+        // Skip sing-box proxies — SingBoxManager handles TDLib dispatch
+        // after sing-box is actually ready to accept connections
+        Settings.Proxy proxyConfig = Settings.instance().getProxyConfig(proxyId);
+        if (proxyConfig != null && proxyConfig.isSingBox()) {
+          return;
+        }
+        for (TdlibAccount account : accounts) {
           if (account.tdlib != null) {
             account.tdlib.setProxy(proxyId, proxy);
           }
@@ -362,6 +368,14 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
 
     this.crashInfo = Settings.instance().findRecoveryCrash();
     load(firstInstanceId, forceService);
+    org.thunderdog.challegram.singbox.SingBoxManager.instance().initialize(UI.getAppContext());
+    org.thunderdog.challegram.singbox.SingBoxManager.instance().restoreActiveInstance();
+    Settings.instance().addProxyListener(org.thunderdog.challegram.singbox.SingBoxManager.instance());
+    org.thunderdog.challegram.singbox.ProxySubscriptionManager.instance().initialize(UI.getAppContext());
+    Settings.instance().addProxyListener(org.thunderdog.challegram.singbox.ProxyLatencyMonitor.instance());
+    if (Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY)) {
+      org.thunderdog.challegram.singbox.ProxyLatencyMonitor.instance().startMonitoring();
+    }
     Settings.instance().addProxyListener(proxyChangeListener);
     notificationQueue().init();
 
@@ -725,6 +739,10 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
       return a.compareTo(b);
     });
     return new FilteredIterator<>(accounts.iterator(), account -> !account.isUnauthorized() && account.tdlibInstanceMode() != Tdlib.Mode.SERVICE);
+  }
+
+  public List<TdlibAccount> getAllAccounts () {
+    return new ArrayList<>(accounts);
   }
 
   // Network type

@@ -79,6 +79,7 @@ import org.thunderdog.challegram.ui.PhoneController;
 import org.thunderdog.challegram.ui.PlaybackController;
 import org.thunderdog.challegram.ui.PrivacyExceptionController;
 import org.thunderdog.challegram.ui.ProfileController;
+import org.thunderdog.challegram.ui.QrCodeLoginController;
 import org.thunderdog.challegram.ui.SettingsAdapter;
 import org.thunderdog.challegram.ui.SettingsBugController;
 import org.thunderdog.challegram.ui.SettingsCacheController;
@@ -394,6 +395,15 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       }
     }
 
+    // Handle QR code link refresh: update existing QrCodeLoginController instead of navigating
+    if (authorizationState.getConstructor() == TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR) {
+      if (current instanceof QrCodeLoginController) {
+        ((QrCodeLoginController) current).updateLink(
+          ((TdApi.AuthorizationStateWaitOtherDeviceConfirmation) authorizationState).link);
+        return;
+      }
+    }
+
     ViewController<?> unauthorizedController = generateUnauthorizedController(account.tdlib());
     if (unauthorizedController != null) {
       if (current == null || current.getId() != unauthorizedController.getId() || (current instanceof PasswordController && ((PasswordController) current).getMode() != ((PasswordController) unauthorizedController).getMode())) {
@@ -603,8 +613,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         break;
       }
       case TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR: {
-        // Should never come to TGX.
-        break;
+        TdApi.AuthorizationStateWaitOtherDeviceConfirmation state =
+          (TdApi.AuthorizationStateWaitOtherDeviceConfirmation) authState;
+        QrCodeLoginController c = new QrCodeLoginController(this, tdlib);
+        c.setArguments(new QrCodeLoginController.Args(state));
+        return c;
       }
 
       case TdApi.AuthorizationStateClosed.CONSTRUCTOR:

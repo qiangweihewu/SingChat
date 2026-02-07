@@ -105,6 +105,8 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -336,6 +338,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           TdApi.Proxy[] proxies = ((TdApi.Proxies) result).proxies;
           boolean foundEnabledProxy = false;
           for (TdApi.Proxy proxy : proxies) {
+            // Remove local SOCKS5 bridge proxies created by sing-box
+            if ("127.0.0.1".equals(proxy.server) && proxy.type.getConstructor() == TdApi.ProxyTypeSocks5.CONSTRUCTOR) {
+              client.send(new TdApi.RemoveProxy(proxy.id), ignored -> { });
+              continue;
+            }
             TdApi.InternalLinkTypeProxy proxyDetails = new TdApi.InternalLinkTypeProxy(
               proxy.server,
               proxy.port,
@@ -349,7 +356,15 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
             }
           }
           if (!foundEnabledProxy) {
-            tdlib.setEffectiveProxyId(Settings.PROXY_ID_NONE);
+            // Check if the effective proxy is a sing-box proxy that needs restoring
+            int settingsProxyId = Settings.instance().getEffectiveProxyId();
+            Settings.Proxy settingsProxy = Settings.instance().getProxyConfig(settingsProxyId);
+            if (settingsProxy != null && settingsProxy.isSingBox()) {
+              tdlib.setEffectiveProxyId(settingsProxyId);
+              tdlib.setProxy(settingsProxyId, settingsProxy.proxy);
+            } else {
+              tdlib.setEffectiveProxyId(Settings.PROXY_ID_NONE);
+            }
           }
         } else {
           int proxyId = Settings.instance().getEffectiveProxyId();
@@ -6129,12 +6144,21 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     } else {
       function = new TdApi.DisableProxy();
     }
+    Log.i("setProxy: proxyId=%d, server=%s, port=%d, function=%s",
+      proxyId,
+      proxy != null ? proxy.server : "null",
+      proxy != null ? proxy.port : 0,
+      function.getClass().getSimpleName());
     client().send(function, (result) -> {
+      Log.i("setProxy result: proxyId=%d, result=%s", proxyId, result);
       switch (result.getConstructor()) {
         case TdApi.Ok.CONSTRUCTOR:
           setEffectiveProxyId(Settings.PROXY_ID_NONE);
           break;
         case TdApi.Proxy.CONSTRUCTOR:
+          TdApi.Proxy tdProxy = (TdApi.Proxy) result;
+          Log.i("setProxy: TDLib proxy id=%d, server=%s:%d, enabled=%b",
+            tdProxy.id, tdProxy.server, tdProxy.port, tdProxy.isEnabled);
           setEffectiveProxyId(proxyId);
           break;
       }
@@ -6173,6 +6197,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   public void getProxyLink (@NonNull Settings.Proxy proxy, RunnableData<String> callback) {
     if (proxy.proxy == null)
       throw new IllegalArgumentException();
+    if (proxy.isSingBox()) {
+      String link = org.thunderdog.challegram.singbox.SingBoxLinkBuilder.buildShareLink(
+        proxy.singBoxOutboundType, proxy.singBoxOutboundJson, proxy.description
+      );
+      ui().post(() -> callback.runWithData(link));
+      return;
+    }
     send(new TdApi.AddProxy(proxy.proxy.server, proxy.proxy.port, false, proxy.proxy.type), (tdlibProxy, error) -> {
       if (error != null) {
         UI.showError(error);
@@ -6201,6 +6232,55 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     );
   }
   public void pingProxy (@NonNull Settings.Proxy proxy, @Nullable RunnableLong after) {
+    if (proxy.isSingBox()) {
+      // Check if a sing-box instance is already running for this proxy
+      int localPort = org.thunderdog.challegram.singbox.SingBoxManager.instance().getLocalPort(proxy.id);
+      if (localPort > 0) {
+        // Instance already running (active proxy), use real TDLib ping
+        proxy.proxy = new TdApi.InternalLinkTypeProxy("127.0.0.1", localPort, new TdApi.ProxyTypeSocks5("", ""));
+        doPingProxy(proxy, after);
+      } else {
+        // Instance not running — use lightweight TCP connect test instead of
+        // starting a full sing-box instance (which would exhaust memory with many proxies)
+        tcpPingSingBoxProxy(proxy, after);
+      }
+      return;
+    }
+    doPingProxy(proxy, after);
+  }
+
+  private static final ExecutorService tcpPingExecutor = Executors.newFixedThreadPool(4, r -> {
+    Thread t = new Thread(r, "tcp-ping");
+    t.setDaemon(true);
+    return t;
+  });
+
+  private void tcpPingSingBoxProxy (@NonNull Settings.Proxy proxy, @Nullable RunnableLong after) {
+    proxy.pingMs = Settings.PROXY_TIME_LOADING;
+    notifyPingValueChanged(proxy);
+    tcpPingExecutor.execute(() -> {
+      long pingMs;
+      try {
+        long start = SystemClock.uptimeMillis();
+        java.net.Socket socket = new java.net.Socket();
+        socket.connect(new java.net.InetSocketAddress(proxy.singBoxServer, proxy.singBoxServerPort), 5000);
+        socket.close();
+        pingMs = SystemClock.uptimeMillis() - start;
+      } catch (Exception e) {
+        pingMs = Settings.PROXY_TIME_EMPTY;
+      }
+      long finalPingMs = pingMs;
+      ui().post(() -> {
+        proxy.pingMs = finalPingMs;
+        notifyPingValueChanged(proxy);
+        if (after != null) {
+          after.runWithLong(finalPingMs);
+        }
+      });
+    });
+  }
+
+  private void doPingProxy (@NonNull Settings.Proxy proxy, @Nullable RunnableLong after) {
     int proxyId = proxy.id;
     int pingId = ++proxy.pingCount;
     proxy.pingMs = Settings.PROXY_TIME_LOADING;
@@ -6209,11 +6289,16 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     TdApi.Function<?> function = proxyId != Settings.PROXY_ID_NONE ?
       new TdApi.AddProxy(proxy.proxy.server, proxy.proxy.port, false, proxy.proxy.type) :
       new TdApi.PingProxy(0);
+    Log.i("doPingProxy: proxy %d, pingId=%d, function=%s:%d isSingBox=%b", proxyId, pingId,
+      proxy.proxy != null ? proxy.proxy.server : "null",
+      proxy.proxy != null ? proxy.proxy.port : 0,
+      proxy.isSingBox());
     AtomicLong uptimeMillis = new AtomicLong(SystemClock.uptimeMillis());
     client().send(function, new Client.ResultHandler() {
       @Override
       public void onResult (TdApi.Object result) {
         if (pingId != proxy.pingCount) {
+          Log.i("doPingProxy: proxy %d discarded (pingId=%d != pingCount=%d)", proxyId, pingId, proxy.pingCount);
           return;
         }
         long now = SystemClock.uptimeMillis();
@@ -6221,17 +6306,20 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         long pingMs;
         switch (result.getConstructor()) {
           case TdApi.Ok.CONSTRUCTOR: {
+            Log.i("doPingProxy: proxy %d got Ok, retrying", proxyId);
             client().send(function, this);
             return;
           }
           case TdApi.Proxy.CONSTRUCTOR: {
             int tdlibProxyId = ((TdApi.Proxy) result).id;
+            Log.i("doPingProxy: proxy %d got TdApi.Proxy id=%d, sending PingProxy", proxyId, tdlibProxyId);
             client().send(new TdApi.PingProxy(tdlibProxyId), this);
             return;
           }
           case TdApi.Seconds.CONSTRUCTOR: {
             long timestampMs = currentTimeMillis();
             pingMs = Math.round(((TdApi.Seconds) result).seconds * 1000.0);
+            Log.i("doPingProxy: proxy %d ping SUCCESS: %d ms", proxyId, pingMs);
             proxy.pingErrorCount = 0;
             Settings.instance().trackSuccessfulConnection(proxyId, timestampMs, pingMs, true);
             if (routeSelector != null) {
@@ -6240,6 +6328,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
             break;
           }
           case TdApi.Error.CONSTRUCTOR: {
+            TdApi.Error error = (TdApi.Error) result;
+            Log.w("doPingProxy: proxy %d ping ERROR: %d %s (errorCount=%d, elapsed=%d)",
+              proxyId, error.code, error.message, proxy.pingErrorCount + 1, elapsed);
             if (++proxy.pingErrorCount < 3 && elapsed <= 1000) {
               client().send(new TdApi.SetAlarm(0.35 * proxy.pingErrorCount), this);
               return;
@@ -10671,10 +10762,15 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         int buildNo = 0;
         String version = null;
         String commit = null;
-        final String prefix = "Telegram-X-";
+        final String prefix = BuildConfig.OUTPUT_FILE_NAME_PREFIX + "-";
         if (!StringUtils.isEmpty(document.fileName) && document.fileName.startsWith(prefix)) {
-          int i = document.fileName.indexOf('-', prefix.length());
-          version = document.fileName.substring(prefix.length(), i == -1 ? document.fileName.length() : i);
+          String nameWithoutExt = document.fileName;
+          int dotIndex = nameWithoutExt.lastIndexOf('.');
+          if (dotIndex > 0) {
+            nameWithoutExt = nameWithoutExt.substring(0, dotIndex);
+          }
+          int i = nameWithoutExt.indexOf('-', prefix.length());
+          version = nameWithoutExt.substring(prefix.length(), i == -1 ? nameWithoutExt.length() : i);
           if (version.matches("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$")) {
             buildNo = StringUtils.parseInt(version.substring(version.lastIndexOf('.') + 1));
             if (buildNo > BuildConfig.ORIGINAL_VERSION_CODE) {

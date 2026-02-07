@@ -1,20 +1,61 @@
-# [Telegram X](https://play.google.com/store/apps/details?id=org.thunderdog.challegram) — a slick experimental Telegram client based on [TDLib](https://core.telegram.org/tdlib).
+# [Telegram-X](https://github.com/qiangweihewu/SingChat) — SingChat Edition
 
-![Telegram X](/images/feature.png)
+**Free communication without limits. Telegram meets sing-box proxy.**
 
-This is the complete source code and the build instructions for the official alternative Android client for the Telegram messenger, based on the [Telegram API](https://core.telegram.org/api) and the [MTProto](https://core.telegram.org/mtproto) secure protocol via [TDLib](https://github.com/TGX-Android/tdlib).
+This is an enhanced community-driven fork of Telegram X, integrating **[sing-box](https://github.com/SagerNet/sing-box)** to provide seamless proxy support alongside secure native Telegram messaging.
 
-* [**Telegram X** on Google Play](http://play.google.com/store/apps/details?id=org.thunderdog.challegram) ([subscribe to beta](https://play.google.com/apps/testing/org.thunderdog.challegram))
-* [APKs and Build Info](https://t.me/tgx_log)
-* [Bot to verify APK hash](https://t.me/tgx_bot)
+## ✨ What's New: sing-box Integration
 
-<details>
-<summary>Other sources</summary>
+Unlike the original Telegram X, this version adds built-in proxy capabilities:
 
-* [**Telegram X** on Huawei AppGallery](https://appgallery.huawei.com/app/C101754199)
-* [**GitHub Releases**](https://github.com/TGX-Android/Telegram-X/releases)
+- **Multi-Protocol Support**: VLESS, VMess, Trojan, and more proxy protocols in one app
+- **Zero-Configuration Connection**: Import proxy nodes with QR code or direct URL
+- **Smart Routing**: Customize which apps and domains use proxy
+- **One-Click Management**: Easily switch between multiple proxy nodes
+- **Privacy-First Design**: End-to-end encryption + proxy layer protection
 
-</details>
+## Original Description
+
+This is the complete source code and build instructions for an enhanced Android client for the Telegram messenger, based on the [Telegram API](https://core.telegram.org/api) and the [MTProto](https://core.telegram.org/mtproto) secure protocol via [TDLib](https://github.com/TGX-Android/tdlib), with added sing-box proxy support.
+
+### 📥 Installation
+
+* [**GitHub Releases**](https://github.com/qiangweihewu/SingChat/releases) — Download APKs directly
+* Build from source — Follow instructions below for full control
+
+### 🔗 Project Links
+
+* **Upstream**: [Telegram X](https://github.com/TGX-Android/Telegram-X) - Original project by TGX team
+* **sing-box Core**: [sing-box](https://github.com/SagerNet/sing-box) - Powerful proxy platform
+* **TDLib**: [Telegram Database Library](https://github.com/tdlib/td) - Telegram protocol implementation
+
+
+## 🚀 Key Features
+
+### Secure Messaging (Native Telegram)
+- End-to-end encrypted chats, calls, and media sharing
+- All original Telegram X features and optimizations
+- Clean, intuitive interface for power users
+
+### Proxy Freedom (sing-box powered)
+- **Import from anywhere**: QR codes, URLs, Clash configs
+- **Protocol flexibility**: VLESS, VMess, Trojan, Shadowsocks, HTTP, SOCKS5, and more
+- **Smart routing**: Route specific apps or domains through proxy
+- **Connection monitoring**: Real-time speed tests and latency tracking
+- **Node switching**: Test and switch between multiple nodes instantly
+
+### Privacy & Control
+- No logging, no tracking
+- Open source — audit the code yourself
+- Stays lean: uses sing-box's proven proxy engine
+- Configure exactly how apps connect
+
+## 💡 Use Cases
+
+- **Journalists & Activists**: Combine Telegram's security with proxy freedom
+- **Travelers**: Protect your communication across borders
+- **Remote Workers**: In regions with network restrictions
+- **Privacy Advocates**: True control over your internet connection
 
 ## Build instructions
 
@@ -40,13 +81,15 @@ This is the complete source code and the build instructions for the official alt
 
 ### Building
 
-1. `$ git clone --recursive --depth=1 --shallow-submodules https://github.com/TGX-Android/Telegram-X tgx` — clone **Telegram X** with submodules
-2. In case you forgot the `--recursive` flag, `cd` into `tgx` directory and: `$ git submodule init && git submodule update --init --recursive --depth=1`
+1. `$ git clone --recursive --depth=1 --shallow-submodules https://github.com/qiangweihewu/SingChat.git singchat` — clone **SingChat** with submodules (includes sing-box)
+2. In case you forgot the `--recursive` flag, `cd` into `singchat` directory and: `$ git submodule init && git submodule update --init --recursive --depth=1`
 3. Create `keystore.properties` file outside of source tree with the following properties:<br/>`keystore.file`: absolute path to the keystore file<br/>`keystore.password`: password for the keystore<br/>`key.alias`: key alias that will be used to sign the app<br/>`key.password`: key password.<br/>**Warning**: keep this file safe and make sure nobody, except you, has access to it. For production builds one could use a separate user with home folder encryption to avoid harm from physical theft
-4. `$ cd tgx`
+4. `$ cd singchat`
 5. Run `$ scripts/./setup.sh` and follow up the instructions
-6. If you specified package name that's different from the one Telegram X uses, [setup Firebase](https://firebase.google.com/docs/android/setup) and replace `google-services.json` with the one that's suitable for the `app.id` you need
+6. If you specified package name that's different from the default one, [setup Firebase](https://firebase.google.com/docs/android/setup) and replace `google-services.json` with the one that's suitable for the `app.id` you need
 7. Now you can open the project using **[Android Studio](https://developer.android.com/studio/)** or build manually from the command line: `./gradlew assembleUniversalRelease`.
+
+> **Note**: sing-box integration is built-in and compiled with the app. No additional configuration needed — just build and run!
 
 #### Available flavors
 
@@ -58,20 +101,30 @@ This is the complete source code and the build instructions for the official alt
 
 ### Quick setup for development
 
-If you are developing a [contribution](https://github.com/TGX-Android/Telegram-X/blob/main/docs/PULL_REQUEST_TEMPLATE.md) to the project, you may follow the simpler building steps:
+If you are developing a contribution to the project, you may follow the simpler building steps:
 
-1. `$ git clone --recursive https://github.com/TGX-Android/Telegram-X tgx`
-2. `$ cd tgx`
+1. `$ git clone --recursive https://github.com/qiangweihewu/SingChat.git singchat`
+2. `$ cd singchat`
 3. [Obtain Telegram API credentials](https://core.telegram.org/api/obtaining_api_id)
 4. Create `local.properties` file in the root project folder using any text editor:<br/><pre># Location where you have Android SDK installed
 sdk.dir=YOUR_ANDROID_SDK_FOLDER
 \# Telegram API credentials obtained at previous step
 telegram.api_id=YOUR_TELEGRAM_API_ID
 telegram.api_hash=YOUR_TELEGRAM_API_HASH</pre>
-5. Run `$ scripts/./setup.sh` — this will download required Android SDK packages and build native dependencies that aren't part of project's [CMakeLists.txt](/app/jni/CMakeLists.txt)
+5. Run `$ scripts/./setup.sh` — this will download required Android SDK packages and build native dependencies (including sing-box)
 6. Open and build project via [Android Studio](https://developer.android.com/studio) or by using one of `./gradlew assemble` commands in terminal
 
-After submitting a pull request and its initial review, special build including your contribution will be published in [@tgx_prs](https://t.me/tgx_prs) channel, where it can be tested by the community. In case any issues or bugs found, you may push more commits to an existing PR that address them and request to publish a newer build by using comments section of pull request or in [@tgx_dev](https://t.me/tgx_dev) chat.
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's:
+- Bug reports and fixes
+- Feature improvements
+- Documentation updates
+- sing-box integration enhancements
+
+Please refer to the [pull request guidelines](docs/PULL_REQUEST_TEMPLATE.md) before submitting.
+
+**Note**: This is a community fork. For issues related to core Telegram functionality, consider checking [upstream](https://github.com/TGX-Android/Telegram-X) first.
 
 ## Reproducing public builds
 
@@ -84,20 +137,37 @@ In order to verify that there is no additional source code injected inside offic
 And update its configuration:
 
 1. Create user called `vk` with the home directory located at `/home/vk`
-2. Clone `tgx` repository to `/home/vk/tgx`
+2. Clone repository to `/home/vk/singchat`
 3. Check out the specific commit you want to verify
 4. In rare cases of builds that include unmerged pull requests, you must follow actions performed by [Publisher's](https://github.com/TGX-Android/Publisher/blob/main/main.js) `fetchPr` and `squashPr` tasks
-5. `cd` into `tgx` folder and install dependencies: `# apt install $(cat reproducible-builds/dependencies.txt)`
+5. `cd` into `singchat` folder and install dependencies: `# apt install $(cat reproducible-builds/dependencies.txt)`
 6. Follow up the build instruction from the previous section
 7. Run `$ apkanalyzer apk compare --different-only <remote-apk> <reproduced-apk>`
 8. If only signature files and metadata differ, build reproduction is successful.
 
-In future build reproduction might become easier. Here's a list of related PR-welcome TODOs:
+## 📜 License
 
-* Project path must not affect the resulting `.so` files, so user & project location requirement could be removed
-* When building native binaries on **macOS**, `.comment` ELF section differs from the one built with **Linux** version of NDK. It must be removed or made deterministic without any side-effects like breaking `native-debug-symbols.zip` (or should be reported to NDK team?)
-* Checksums of cold APK builds always differ, even though the same keystore applied and generated inner APK contents do not differ. Real cause must be investigated and fixed, if possible.<br/>To generate cold build, invoke `$ scripts/./reset.sh` and `$ scripts/./setup.sh --skip-sdk-setup`.<br/>**Warning**: this will also reset changes inside some of the submodules ([ffmpeg](/app/jni/thirdparty/ffmpeg), [libvpx](/app/jni/thirdparty/libvpx), [webp](/app/jni/thirdparty/webp), [opus](/app/jni/thirdparty/opus) and [ExoPlayer](/app/jni/thirdparty/exoplayer))
-* Move local pull requests squash-merging from [Publisher](https://github.com/TGX-Android/Publisher) to some script inside this repository to make reproduction of builds that include them easier.
+This project combines:
+- **Telegram X**: Licensed under GNU General Public License v2
+- **sing-box**: Licensed under GNU General Public License v2
+- **TDLib**: Licensed under Boost Software License
+
+See [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Telegram X team](https://github.com/TGX-Android/Telegram-X) — Original project foundation
+- [sing-box](https://github.com/SagerNet/sing-box) — Powerful proxy platform
+- [TDLib](https://github.com/tdlib/td) — Telegram protocol implementation
+- All contributors and community members
+
+## ⚠️ Disclaimer
+
+This is a community-driven fork and is **not** affiliated with Telegram. Use at your own risk. For official Telegram support, visit [telegram.org](https://telegram.org/).
+
+---
+
+Made with ❤️ for privacy and freedom of communication.
 
 <i>PS: [Docker](https://www.docker.com) is not considered an option, as it just hides away these tasks, and requires that all published APKs must be built using it.</i>
 

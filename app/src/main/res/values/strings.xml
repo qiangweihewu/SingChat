@@ -2,18 +2,18 @@
 <resources>
   <string name="language_continueInLanguage">Continue in English</string>
 
-  <string name="Page1Title">Telegram X</string>
+  <string name="Page1Title">SingChat</string>
   <string name="Page2Title">Fast</string>
   <string name="Page3Title">Free</string>
   <string name="Page4Title">Powerful</string>
   <string name="Page5Title">Secure</string>
   <string name="Page6Title">Cloud-Based</string>
   <string name="Page1Message">The world\'s **fastest** messaging app.\nIt is **free** and **secure**.</string>
-  <string name="Page2Message">**Telegram** delivers messages\nfaster than any other application.</string>
-  <string name="Page3Message">**Telegram** provides free unlimited\ncloud storage for chats and media.</string>
-  <string name="Page4Message">**Telegram** has no limits on\nthe size of your media and chats.</string>
-  <string name="Page5Message">**Telegram** keeps your messages\nsafe from hacker attacks.</string>
-  <string name="Page6Message">**Telegram** lets you access your\nmessages from multiple devices.</string>
+  <string name="Page2Message">**SingChat** delivers messages\nfaster than any other application.</string>
+  <string name="Page3Message">**SingChat** provides free unlimited\ncloud storage for chats and media.</string>
+  <string name="Page4Message">**SingChat** has no limits on\nthe size of your media and chats.</string>
+  <string name="Page5Message">**SingChat** keeps your messages\nsafe from hacker attacks.</string>
+  <string name="Page6Message">**SingChat** lets you access your\nmessages from multiple devices.</string>
   <string name="StartMessaging">Start Messaging</string>
 
   <string name="network_Connecting">Connecting…</string>
@@ -30,7 +30,7 @@
   <string name="network_LookupFailed">No routes found, connecting directly…</string>
   <string name="network_LookupFailedProxy">No routes found, using the previous proxy…</string>
 
-  <string name="AppNameAndVersion">Telegram X %1$s</string>
+  <string name="AppNameAndVersion">SingChat %1$s</string>
   <string name="language_code">en</string>
   <string name="language_emoji">&#127482;&#127480;</string>
   <string name="language_name">English</string>
@@ -38,7 +38,7 @@
   <string name="language_dateFormatLocale">en-UK</string>
   <string name="language_rtl">0</string>
   <string name="language_disable_lowercase">0</string>
-  <string name="language_continueInLanguagePopupText">**Telegram X** is now available in **English**.\n\nWould you like to switch app language?\n\nYou can revert changes anytime later in Settings&#160;&gt;&#160;Language.</string>
+  <string name="language_continueInLanguagePopupText">**SingChat** is now available in **English**.\n\nWould you like to switch app language?\n\nYou can revert changes anytime later in Settings&#160;&gt;&#160;Language.</string>
   <string name="language_appliedLanguage">App language has been set to English.</string>
   <string name="MoreLanguages">More Languages</string>
   <string name="timestamp_now">just now</string>
@@ -110,7 +110,7 @@
   <string name="login_PhoneNumber">Phone number</string>
   <string name="login_PremiumRequiredTitle">Telegram Premium required</string>
   <string name="login_PremiumRequiredBtn">Visit telegram.org</string>
-  <string name="login_PremiumRequired">**Telegram Premium** is required to proceed.\n\nUnfortunately, it\'s currently not possible to make in-app purchases through **Telegram X**.\n\nPlease use one of other official apps and enter the same phone number to set up the subscription.</string>
+  <string name="login_PremiumRequired">**Telegram Premium** is required to proceed.\n\nUnfortunately, it\'s currently not possible to make in-app purchases through **SingChat**.\n\nPlease use one of other official apps and enter the same phone number to set up the subscription.</string>
   <string name="login_error">Error: %1$s. __Contact us__, if you need help.</string>
   <string name="login_Code">Code</string>
   <string name="login_LastDigits_one">Last %1$s digit</string>
@@ -118,6 +118,12 @@
   <string name="login_Password">Password</string>
   <string name="Country">Country</string>
   <string name="login_SmsHint">We will send an SMS with a confirmation code to your phone number.</string>
+  <string name="LogInByQrCode">Log in by QR Code</string>
+  <string name="QrCodeLoginTitle">Log in to Telegram by QR Code</string>
+  <string name="QrCodeLoginStep1">Open Telegram on your phone</string>
+  <string name="QrCodeLoginStep2">Go to Settings → Devices → Link Desktop Device</string>
+  <string name="QrCodeLoginStep3">Point your phone at this screen to confirm login</string>
+  <string name="LogInByPhoneNumber">Log in by phone number</string>
   <string name="Registration">Registration</string>
   <string name="login_FirstName">First name</string>
   <string name="BotName">Name</string>
@@ -553,7 +559,7 @@
   <string name="fingerprint_fail">Unknown finger</string>
   <string name="biometrics_hint3">Please add biometrics in System Settings &gt; Security &gt; Biometrics.</string>
   <string name="biometrics_fail">Unknown biometrics</string>
-  <string name="cam_hint">Please allow Telegram X to use camera in System Settings &gt; Apps &gt; Telegram X &gt; Permissions</string>
+  <string name="cam_hint">Please allow SingChat to use camera in System Settings &gt; Apps &gt; SingChat &gt; Permissions</string>
   <string name="Settings">Settings</string>
   <string name="LogOut">Log out</string>
   <string name="DeleteAccount">Delete account</string>
@@ -1728,6 +1734,27 @@
   <string name="HttpProxyTransparent">Transparent TCP connection</string>
   <string name="HttpProxyTransparentHint">Enable if server supports transparent TCP connections via HTTP CONNECT method.\n\nWhen supported, it may improve connection speed dramatically. Try changing this option if this proxy doesn\'t work.</string>
   <string name="ProxyHttp">HTTP %1$s</string>
+  <string name="ProxyVless">VLESS %1$s</string>
+  <string name="ProxyShadowsocks">Shadowsocks %1$s</string>
+  <string name="ProxyTrojan">Trojan %1$s</string>
+  <string name="ProxyVmess">VMess %1$s</string>
+  <string name="ProxySingBox">sing-box %1$s</string>
+  <string name="AddSingBoxProxy">Add sing-box Proxy</string>
+  <string name="SingBoxProxy">sing-box Proxy</string>
+  <string name="SingBoxProxyLink">Import Link</string>
+  <string name="SingBoxProxyLinkHint">Paste vless://, ss://, trojan://, or vmess:// link</string>
+  <string name="SingBoxProxyProtocol">Protocol</string>
+  <string name="SingBoxProxyUUID">UUID</string>
+  <string name="SingBoxProxyFlow">Flow</string>
+  <string name="SingBoxProxyTls">TLS</string>
+  <string name="SingBoxProxySni">SNI</string>
+  <string name="SingBoxProxyTransport">Transport</string>
+  <string name="SingBoxProxyPath">Path</string>
+  <string name="SingBoxProxyMethod">Method</string>
+  <string name="SingBoxProxyAlterID">Alter ID</string>
+  <string name="SingBoxProxySecurity">Security</string>
+  <string name="SingBoxProxyImportError">Invalid proxy link</string>
+  <string name="SingBoxProxyConfigError">Invalid proxy configuration</string>
   <string name="ProxyTorNetwork">Tor Network %1$s</string>
   <string name="ProxyUsernameHint">Username</string>
   <string name="ProxyPasswordHint">Password</string>
@@ -1748,6 +1775,23 @@
   <string name="ProxySettings">Proxy settings</string>
   <string name="ProxyAutoSwitch">Switch automatically</string>
   <string name="ProxyAutoSwitchHint">Automatically try different connections when the app takes too long to connect. This may increase the time needed to establish connection on weak networks.</string>
+  <string name="ProxySubscriptions">Subscriptions</string>
+  <string name="ProxyAddSubscription">Add subscription URL</string>
+  <string name="ProxySubscriptionInfo">Subscription URLs provide proxy lists that update automatically.</string>
+  <string name="ProxySubscriptionUrl">Subscription URL</string>
+  <string name="ProxySubscriptionName">Name (optional)</string>
+  <string name="ProxySubscriptionLastUpdate">Last updated: %1$s</string>
+  <string name="ProxySubscriptionNeverUpdated">Never updated</string>
+  <string name="ProxySubscriptionRefreshing">Refreshing…</string>
+  <string name="ProxySubscriptionRefreshSuccess">Updated: %1$d added, %2$d removed</string>
+  <string name="ProxySubscriptionRefreshError">Failed to update subscription</string>
+  <string name="ProxySubscriptionRemoveConfirm">Remove this subscription and all its proxies?</string>
+  <string name="ProxySubscriptionRemove">Remove subscription</string>
+  <string name="ProxyRefreshAllSubscriptions">Refresh all subscriptions</string>
+  <string name="ProxyPingAll">Ping all proxies</string>
+  <string name="ProxyFromSubscription">from %1$s</string>
+  <string name="ProxySubscriptionInvalidUrl">Invalid subscription URL</string>
+  <string name="ProxySubscriptionEmpty">No proxies found in subscription</string>
   <string name="EnableProxyAlertTitle">Are you sure you want to enable this proxy?</string>
   <string name="EnableProxyAlertHint">You can change your proxy server later in Settings &gt; Data and Storage.</string>
   <string name="EnableProxyAlertHintMtproto">This proxy may display a sponsored channel in your chat list. This doesn\'t reveal any of your Telegram traffic.</string>
@@ -3037,21 +3081,21 @@
 
   <string name="json_ChatDemo">0</string>
 
-  <string name="ChangeLogText">**Telegram X** was updated to version %1$s\n\nBrief overview of new features:\n%2$s</string>
+  <string name="ChangeLogText">**SingChat** was updated to version %1$s\n\nBrief overview of new features:\n%2$s</string>
 
   <string name="LoginErrorOffline">You\'re currently offline. Please connect to the Internet in order to start messaging.</string>
   <string name="LoginErrorAirplane">You currently have airplane mode enabled. Please turn it off or connect to Wi-Fi in order to start messaging.</string>
-  <string name="LoginErrorLongConnecting">Telegram X is unable to quickly establish connection with the server.\n\nPlease check your network connection or wait until this pop-up disappears automatically.\n\nProxy servers may be helpful in accessing Telegram if there is no connection in your region.</string>
+  <string name="LoginErrorLongConnecting">SingChat is unable to quickly establish connection with the server.\n\nPlease check your network connection or wait until this pop-up disappears automatically.\n\nProxy servers may be helpful in accessing Telegram if there is no connection in your region.</string>
 
   <string name="HelpEmailError">Please send an email to %1$s and tell us about your problem</string>
 
   <string name="email_SmsHelp">sms@telegram.org</string>
   <string name="email_LoginHelp">recover@telegram.org</string>
 
-  <string name="email_LoginTooLong_subject">Telegram X connection issue</string>
-  <string name="email_LoginTooLong_text">My Internet service provider is: (please enter the name)\n\nI\'ve just installed the application and tried to start messaging, but Telegram X is unable to connect to the server. Please help.\n\nApp version: %1$s\nLanguage: %2$s\nAwait time: %3$s\nSystem Language: %4$s\nSystem Version: %5$s</string>
+  <string name="email_LoginTooLong_subject">SingChat connection issue</string>
+  <string name="email_LoginTooLong_text">My Internet service provider is: (please enter the name)\n\nI\'ve just installed the application and tried to start messaging, but SingChat is unable to connect to the server. Please help.\n\nApp version: %1$s\nLanguage: %2$s\nAwait time: %3$s\nSystem Language: %4$s\nSystem Version: %5$s</string>
 
-  <string name="email_LoginDeadEnd_subject">Telegram X SMS not sent: %1$s</string>
+  <string name="email_LoginDeadEnd_subject">SingChat SMS not sent: %1$s</string>
   <string name="email_LoginDeadEnd_text">My Internet service provider is: (please enter the name)\n\nI\'m trying to use my mobile phone number: %1$s\nBut Telegram could not send me SMS with the confirmation code. Please help.\n\nBelow are all details that might help understanding the issue.\nError: %3$s\n%2$s</string>
 
   <string name="email_InvalidNumber_subject">Invalid phone number: %1$s</string>
@@ -3060,7 +3104,7 @@
   <string name="email_BannedNumber_subject">Banned phone number: %1$s</string>
   <string name="email_BannedNumber_text">I\'m trying to use my mobile phone number: %1$s\nBut Telegram says it\'s banned. Please help.</string>
 
-  <string name="email_LoginError_subject">Telegram X error: %1$s</string>
+  <string name="email_LoginError_subject">SingChat error: %1$s</string>
   <string name="email_LoginError_text">I\'m trying to use my mobile phone number: %1$s\nBut Telegram shows an error. Please help.\nError: %2$s</string>
 
   <string name="email_metadata">App version: %1$s\nLanguage: %2$s\nSystem Language: %3$s\nSystem Version: %4$s</string>
@@ -3492,15 +3536,15 @@
   <string name="NotificationsGuideBlockedApp">Notifications from Telegram are blocked in system settings. Tap System Notification Settings to unblock them.</string>
   <string name="NotificationsGuideBlockedCategory">Notifications for the current account are disabled in system settings.\n\nTo enable notifications:\n• Tap System Notification Settings\n• Find the "%1$s" notification category\n• Turn the toggle on to unblock notifications.</string>
   <string name="NotificationsGuideBlockedAll">Notifications from Telegram are blocked in your device settings.\n\nTo enable notifications:\n• Tap System Notification Settings.\n• Turn on Show Notifications.</string>
-  <string name="NotificationsGuidePermission">Notifications from Telegram are blocked in your system settings.\n\nTo enable notifications:\n• Go to system settings – Applications – Telegram X.\n• Tap Notifications – Allow notifications.</string>
+  <string name="NotificationsGuidePermission">Notifications from Telegram are blocked in your system settings.\n\nTo enable notifications:\n• Go to system settings – Applications – SingChat.\n• Tap Notifications – Allow notifications.</string>
   <string name="NotificationsGuideSyncGlobalOff">You have data sync turned off in system settings. Notifications may not arrive when app is closed.\n\nData sync may be implicitly turned off by the battery optimization mode on your device.</string>
-  <string name="NotificationsGuideSyncAppOff">You have data sync turned off for Telegram X. Notifications may not arrive when app is closed.\n\nData sync may be implicitly turned off by the battery optimization mode on your device.</string>
+  <string name="NotificationsGuideSyncAppOff">You have data sync turned off for SingChat. Notifications may not arrive when app is closed.\n\nData sync may be implicitly turned off by the battery optimization mode on your device.</string>
   <string name="NotificationsGuideFirebaseUnavailable">Google Play Services are unavailable. Please check you have them installed and up-to-date.\n\nNotifications may arrive with big delays or not arrive at all without them.</string>
-  <string name="NotificationsGuideFirebaseError">**Firebase Services** have failed to function properly due to error: %1$s\n\nNotifications may arrive with big delays or not arrive at all without them.\n\nPlease make sure:\n• Google Play Services are installed and up-to-date: https://support.google.com/googleplay/answer/9037938?hl=en\n• Telegram X is up-to-date\n• Firebase services are enabled\n• They are not blocked by your Internet service or DNS provider\n• If you have firewall or ad blocking software, Firebase domains are whitelisted\n• You can see 404 message in a browser on this page: https://firebaseinstallations.googleapis.com/\n• System date and time is correct\n• Problem doesn\'t go away after restarting your device\n• All system updates are installed\n• You are using the **official** version of Telegram X: @tgx_log\n\nIf the steps above do not help, try again with VPN that you trust, as it might be caused by Internet censorship applied by authorities in your region.</string>
-  <string name="NotificationsGuideError">**Telegram X** was unable to display some notifications for this account due to an unknown system error.\n\nPlease make sure:\n• All system updates are installed\n• Telegram X is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to share the detailed error report to @tgandroidtests, or look up for troubleshooting tips for your device.</string>
-  <string name="NotificationsGuideErrorChat">**Telegram X** was unable to display some notifications from %1$s due to an unknown system error.\n\nPlease make sure:\n• All system updates are installed\n• Telegram X is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to share the detailed error report to @tgandroidtests, or look up for troubleshooting tips for your device.</string>
-  <string name="NotificationsGuideCategoryLimit">**Telegram X** was unable to display some notifications for this account due to notification categories system limit.\n\nPlease make sure:\n• All system updates are installed\n• Telegram X is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to ask @tgandroidtests for troubleshooting tips for your device, or re-install Telegram X, which should help resolving this error, but requires logging in to your account again.</string>
-  <string name="NotificationsGuideCategoryLimitErrorChat">**Telegram X** was unable to display some notifications from %1$s due to notification categories system limit.\n\nPlease make sure:\n• All system updates are installed\n• Telegram X is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to ask @tgandroidtests for troubleshooting tips for your device, or re-install Telegram X, which should help resolving this error, but requires logging in to your account again.</string>
+  <string name="NotificationsGuideFirebaseError">**Firebase Services** have failed to function properly due to error: %1$s\n\nNotifications may arrive with big delays or not arrive at all without them.\n\nPlease make sure:\n• Google Play Services are installed and up-to-date: https://support.google.com/googleplay/answer/9037938?hl=en\n• SingChat is up-to-date\n• Firebase services are enabled\n• They are not blocked by your Internet service or DNS provider\n• If you have firewall or ad blocking software, Firebase domains are whitelisted\n• You can see 404 message in a browser on this page: https://firebaseinstallations.googleapis.com/\n• System date and time is correct\n• Problem doesn\'t go away after restarting your device\n• All system updates are installed\n• You are using the **official** version of SingChat: @tgx_log\n\nIf the steps above do not help, try again with VPN that you trust, as it might be caused by Internet censorship applied by authorities in your region.</string>
+  <string name="NotificationsGuideError">**SingChat** was unable to display some notifications for this account due to an unknown system error.\n\nPlease make sure:\n• All system updates are installed\n• SingChat is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to share the detailed error report to @tgandroidtests, or look up for troubleshooting tips for your device.</string>
+  <string name="NotificationsGuideErrorChat">**SingChat** was unable to display some notifications from %1$s due to an unknown system error.\n\nPlease make sure:\n• All system updates are installed\n• SingChat is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to share the detailed error report to @tgandroidtests, or look up for troubleshooting tips for your device.</string>
+  <string name="NotificationsGuideCategoryLimit">**SingChat** was unable to display some notifications for this account due to notification categories system limit.\n\nPlease make sure:\n• All system updates are installed\n• SingChat is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to ask @tgandroidtests for troubleshooting tips for your device, or re-install SingChat, which should help resolving this error, but requires logging in to your account again.</string>
+  <string name="NotificationsGuideCategoryLimitErrorChat">**SingChat** was unable to display some notifications from %1$s due to notification categories system limit.\n\nPlease make sure:\n• All system updates are installed\n• SingChat is up-to-date\n• There are no notification restrictions in system settings.\n\nIf the steps above do not help, you might want to ask @tgandroidtests for troubleshooting tips for your device, or re-install SingChat, which should help resolving this error, but requires logging in to your account again.</string>
   <string name="TurnSyncOnApp">Turn on data sync</string>
   <string name="TurnSyncOnSystem">Turn on data sync</string>
   <string name="InstallGooglePlayServices">Get Google Play Services</string>
@@ -3610,19 +3654,19 @@
   <string name="LaunchAppUserSubtitle">offline</string>
 
   <string name="LaunchSubtitleDiskFull">Disk storage is full</string>
-  <string name="LaunchAppGuideDiskFull">Telegram X has previously failed to launch because the device storage was full.\n\nMake sure there\'s enough storage space available and press **Launch App** to try again.\n\nCurrently available: %1$s</string>
+  <string name="LaunchAppGuideDiskFull">SingChat has previously failed to launch because the device storage was full.\n\nMake sure there\'s enough storage space available and press **Launch App** to try again.\n\nCurrently available: %1$s</string>
 
   <string name="LaunchSubtitleDatabaseBroken">Corrupted database</string>
-  <string name="LaunchAppGuideDatabaseBroken">Telegram X has previously failed to launch because TDLib data has been corrupted. This could have happened because of device storage failure.\n\nPress **Launch App** to continue. If application keeps failing, follow these steps:\n\n• Check you have enough disk space available: **%1$s**.\n• Ensure there are no other storage issues, such as SD-card being ejected or unrecognized.\n• Restart your device.\n\nIf this does not help, you may want to look for similar issues on [TDLib\'s GitHub page](https://github.com/tdlib/td/issues) for possible resolutions, or create a new one, including error message and device details.</string>
+  <string name="LaunchAppGuideDatabaseBroken">SingChat has previously failed to launch because TDLib data has been corrupted. This could have happened because of device storage failure.\n\nPress **Launch App** to continue. If application keeps failing, follow these steps:\n\n• Check you have enough disk space available: **%1$s**.\n• Ensure there are no other storage issues, such as SD-card being ejected or unrecognized.\n• Restart your device.\n\nIf this does not help, you may want to look for similar issues on [TDLib\'s GitHub page](https://github.com/tdlib/td/issues) for possible resolutions, or create a new one, including error message and device details.</string>
 
   <string name="LaunchSubtitleExternalError">External error</string>
-  <string name="LaunchAppGuideExternalError">Telegram X has previously failed to launch because of device error.\n\nPress **Launch App** to try again. If application keeps failing, follow these steps:\n\n• Check you have enough disk space available: **%1$s**.\n• Ensure there are no other storage issues, such as SD-card being ejected or unrecognized.\n• Restart your device.\n\nIf this does not help, you may want to look for similar issues on [TDLib\'s GitHub page](https://github.com/tdlib/td/issues) for possible resolutions, or create a new one, including error message and device details.</string>
+  <string name="LaunchAppGuideExternalError">SingChat has previously failed to launch because of device error.\n\nPress **Launch App** to try again. If application keeps failing, follow these steps:\n\n• Check you have enough disk space available: **%1$s**.\n• Ensure there are no other storage issues, such as SD-card being ejected or unrecognized.\n• Restart your device.\n\nIf this does not help, you may want to look for similar issues on [TDLib\'s GitHub page](https://github.com/tdlib/td/issues) for possible resolutions, or create a new one, including error message and device details.</string>
 
   <string name="LaunchSubtitleTdlibIssue">TDLib fatal error. Version: %1$s</string>
-  <string name="LaunchAppGuideTdlibIssue">Telegram X has previously failed to launch because of TDLib fatal error.\n\nPress **Launch App** to try again. If application continues to fail, follow these steps:\n\n• [Verify](%2$s) you have the latest Telegram X version installed.\n• Restart your device.\n\n**If the steps above do not help**\n\n1. Share error details with TDLib developers using one of the following ways:\n— Privately via [@tdlib_bot](https://t.me/tdlib_bot) by using another device or [Telegram Web](https://web.telegram.org/).\n— Publicly via [GitHub page](https://github.com/tdlib/td/issues). **Do not** share **tdlib_log.txt** publicly.\n2. Kindly wait for the response.\n3. Change log settings below as requested by TDLib developers.\n4. Press **Launch App** to make app force stop again.\n5. Share **tdlib_log.txt** with TDLib developers and wait for the problem to be resolved.\n6. Once updated, you\'ll be able to launch app normally.\n\n**Alternative options**\n\n• Search for similar issues on [GitHub](https://github.com/tdlib/td/issues) to see if there are common solutions.\n• Reinstall the app. Secret chats will be lost. If you use same phone number you were logged in, all other chats and data will be restored from the Telegram cloud.</string>
+  <string name="LaunchAppGuideTdlibIssue">SingChat has previously failed to launch because of TDLib fatal error.\n\nPress **Launch App** to try again. If application continues to fail, follow these steps:\n\n• [Verify](%2$s) you have the latest SingChat version installed.\n• Restart your device.\n\n**If the steps above do not help**\n\n1. Share error details with TDLib developers using one of the following ways:\n— Privately via [@tdlib_bot](https://t.me/tdlib_bot) by using another device or [Telegram Web](https://web.telegram.org/).\n— Publicly via [GitHub page](https://github.com/tdlib/td/issues). **Do not** share **tdlib_log.txt** publicly.\n2. Kindly wait for the response.\n3. Change log settings below as requested by TDLib developers.\n4. Press **Launch App** to make app force stop again.\n5. Share **tdlib_log.txt** with TDLib developers and wait for the problem to be resolved.\n6. Once updated, you\'ll be able to launch app normally.\n\n**Alternative options**\n\n• Search for similar issues on [GitHub](https://github.com/tdlib/td/issues) to see if there are common solutions.\n• Reinstall the app. Secret chats will be lost. If you use same phone number you were logged in, all other chats and data will be restored from the Telegram cloud.</string>
 
   <string name="LaunchSubtitleFatalError">Unexpected error</string>
-  <string name="LaunchAppGuideFatalError">Telegram X has closed unexpectedly the last time you were using it.\n\nPress **Launch App** to try again.</string>
+  <string name="LaunchAppGuideFatalError">SingChat has closed unexpectedly the last time you were using it.\n\nPress **Launch App** to try again.</string>
 
   <string name="SelfDestructPhoto">Self-Destruct Photo</string>
   <string name="SelfDestructVideo">Self-Destruct Video</string>
@@ -3688,7 +3732,7 @@
   <string name="SettingsAndThemes">Settings and Themes</string>
 
   <string name="Paints">Drawings</string>
-  <string name="PaintsInfo">Telegram X remembers vector drawings you made via the in-app image editor for possible future use.\n\nWould you like to make Telegram X unsee them?</string>
+  <string name="PaintsInfo">SingChat remembers vector drawings you made via the in-app image editor for possible future use.\n\nWould you like to make SingChat unsee them?</string>
 
   <string name="JunkFiles">Unused Files</string>
   <string name="JunkFilesInfo">Service files that were created while using some features or older app versions.</string>
@@ -3698,7 +3742,7 @@
   <string name="ShowOtherChats">Show Other Chats</string>
 
   <string name="UseSystemFonts">Use System Fonts</string>
-  <string name="UseSystemFontsHint">**Warning!**\n\nTelegram X does not guarantee proper rendering of system fonts.</string>
+  <string name="UseSystemFontsHint">**Warning!**\n\nSingChat does not guarantee proper rendering of system fonts.</string>
 
   <string name="RestartEffect">Restart the app for this to take effect.</string>
 
@@ -3798,7 +3842,7 @@
   <string name="ChatBannedUntil">Admins have banned you in this group until %1$s</string>
 
   <string name="UpgradeChatPrompt">To perform this action, this chat will be converted to supergroup.\n\n**Note**: new members will not see messages sent before the conversion.</string>
-  <string name="AppUpdateReady">Telegram X is ready to be updated.</string>
+  <string name="AppUpdateReady">SingChat is ready to be updated.</string>
   <string name="AppUpdateRestart">Restart</string>
   <string name="AppUpdateInstall">Update</string>
 
@@ -4626,10 +4670,10 @@
   <string name="DownloadUpdateSize">Download update (%1$s)</string>
   <string name="DownloadUpdate">Download update</string>
   <string name="UpdateSourceChanges">View source code changes</string>
-  <string name="AppUpdateAvailablePrompt">A new **Telegram X** update is available. Would you like to download? (%1$s)</string>
-  <string name="AppUpdateAvailableVersionPrompt">A new **Telegram X** `%2$s` update is available. Would you like to download? (%1$s)</string>
+  <string name="AppUpdateAvailablePrompt">A new **SingChat** update is available. Would you like to download? (%1$s)</string>
+  <string name="AppUpdateAvailableVersionPrompt">A new **SingChat** `%2$s` update is available. Would you like to download? (%1$s)</string>
 
-  <string name="AppSignature">**Telegram X** `%1$s`</string>
+  <string name="AppSignature">**SingChat** `%1$s`</string>
 
   <string name="ScanQR">Scan QR</string>
   <string name="ScanQRLogInInfo">Use camera to sign in on the desktop app.</string>
@@ -4763,7 +4807,7 @@
   <string name="ChatBackgroundTypeMulticolor">multicolor gradient</string>
   <string name="ChatBackgroundBlur">Blurred</string>
 
-  <string name="NoCloudThemeSupport">This theme is not designed for **Telegram X**.\n\nHowever, you may check for user-made themes in @tgx_perfection.</string>
+  <string name="NoCloudThemeSupport">This theme is not designed for **SingChat**.\n\nHowever, you may check for user-made themes in @tgx_perfection.</string>
 
   <string name="TransferOwnershipSecurityAlert">Security Check</string>
   <string name="TransferOwnershipSecurityPasswordNeeded">Sorry, but you can only transfer ownership if you have set up **Two-Step Verification** on your Telegram account.</string>
@@ -4977,12 +5021,12 @@
   <string name="SessionTerminatesCustomAlertTitle">Number of Days</string>
   <string name="SessionTerminatesCustomAlertHint">Accepted from 1 to 366</string>
 
-  <string name="LocationAlertBot">To make a location-based search via %1$s, allow Telegram X access to your location.</string>
-  <string name="LocationAlertBotDisclaimer">Note that Telegram X does not have any control over how the location data is processed by %1$s.</string>
-  <string name="LocationAlertLiveLocation">To send a Live Location, allow Telegram X access to your location in the background. This feature will send a message with your location that will be updated in real time for the duration you choose even if you\'re not using the app. You can stop Live Location at any time.</string>
-  <string name="LocationAlertSunriseSunset">To calculate sunrise and sunset times, allow Telegram X access to your location.</string>
-  <string name="LocationAlertLocation">To send a nearby place or your location, allow Telegram X access to your location.</string>
-  <string name="LocationAlertLocationDisclaimer">Telegram X does not use location data for any hidden purposes, and accesses it only by your explicit request.</string>
+  <string name="LocationAlertBot">To make a location-based search via %1$s, allow SingChat access to your location.</string>
+  <string name="LocationAlertBotDisclaimer">Note that SingChat does not have any control over how the location data is processed by %1$s.</string>
+  <string name="LocationAlertLiveLocation">To send a Live Location, allow SingChat access to your location in the background. This feature will send a message with your location that will be updated in real time for the duration you choose even if you\'re not using the app. You can stop Live Location at any time.</string>
+  <string name="LocationAlertSunriseSunset">To calculate sunrise and sunset times, allow SingChat access to your location.</string>
+  <string name="LocationAlertLocation">To send a nearby place or your location, allow SingChat access to your location.</string>
+  <string name="LocationAlertLocationDisclaimer">SingChat does not use location data for any hidden purposes, and accesses it only by your explicit request.</string>
 
   <string name="RequestToJoinGroupInfo">This group accepts new members only after they are being accepted by admins.</string>
   <string name="RequestToJoinChannelInfo">This channel accepts new subscribers only after they are approved by its admins.</string>
@@ -5011,7 +5055,7 @@
   <string name="xPRs_other">%1$s PRs</string>
   <string name="PR">PR #%1$d</string>
 
-  <string name="OpenSourceGuide">**Telegram X** is open source. You can view the exact source code used to make the version you have installed.</string>
+  <string name="OpenSourceGuide">**SingChat** is open source. You can view the exact source code used to make the version you have installed.</string>
 
   <string name="ResetPasswordWait">You recently requested a password reset that was canceled. Please wait %1$s before making a new request.</string>
   <string name="RestorePasswordNoEmailText2">Since you didn’t provide a recovery email when setting up your password, your remaining options are either to remember your password or wait 7 days until your password is reset.</string>
@@ -5024,7 +5068,7 @@
   <string name="CancelPasswordResetYes">YES</string>
 
   <string name="ExperimentalBuildTitle">Caution: experimental build</string>
-  <string name="ExperimentalBuildInfo">This version of **Telegram X** is not designed for long-term use.\n\nIt may completely stop working over a time and you cannot turn notifications on.\n\nIf you are looking for the proper Telegram X APK file, see https://t.me/tgx_log</string>
+  <string name="ExperimentalBuildInfo">This version of **SingChat** is not designed for long-term use.\n\nIt may completely stop working over a time and you cannot turn notifications on.\n\nIf you are looking for the proper SingChat APK file, see https://t.me/tgx_log</string>
 
   <string name="PremiumRequiredSticker">Sending this sticker requires a **Telegram Premium** subscription.</string>
   <string name="PremiumRequiredVoiceVideo">This setting requires a **Telegram Premium** subscription.</string>
@@ -5377,7 +5421,7 @@
   <string name="SwipeToSwapLinkPreview">Swipe to choose specific link preview</string>
 
   <string name="MessageRestrictedByTelegram">This is a service message from Telegram</string>
-  <string name="MessageUnsupportedHint">This message is unsupported in the installed version of Telegram X.</string>
+  <string name="MessageUnsupportedHint">This message is unsupported in the installed version of SingChat.</string>
 
   <string name="ConfirmPasswordAlertHint">Please enter your 2-Step verification password to confirm the action.</string>
   <string name="DeleteAccountReason">Reason</string>
@@ -5508,8 +5552,8 @@
   <string name="GiveawayInfoClose">Close</string>
   <string name="GiveawayViewMyPrize">View my prize</string>
 
-  <string name="EmulatorWarning">You are running **Telegram X** on an **emulated device**.\n\n**Note**: if you don\'t have an **existing** Telegram account, you may need a **real device** to create it.\n\nIn case you see this warning on a real device (such as phone, tablet, etc), press **report issue**.</string>
-  <string name="EmulatorWarningStrict">You are running **Telegram X** on an **emulated device**.\n\n**Note**: if you don\'t have an **existing** Telegram account, you may need a **real device** to create it.\n\nIf you have your phone connected to a PC, disconnect it and restart Telegram X.</string>
+  <string name="EmulatorWarning">You are running **SingChat** on an **emulated device**.\n\n**Note**: if you don\'t have an **existing** Telegram account, you may need a **real device** to create it.\n\nIn case you see this warning on a real device (such as phone, tablet, etc), press **report issue**.</string>
+  <string name="EmulatorWarningStrict">You are running **SingChat** on an **emulated device**.\n\n**Note**: if you don\'t have an **existing** Telegram account, you may need a **real device** to create it.\n\nIf you have your phone connected to a PC, disconnect it and restart SingChat.</string>
   <string name="EmulatorWarningTitle">Emulator detected</string>
   <string name="EmulatorWarningBtnReport">Report issue</string>
   <string name="EmulatorWarningBtnOk">Got it</string>

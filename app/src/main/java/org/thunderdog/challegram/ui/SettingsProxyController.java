@@ -32,12 +32,15 @@ import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.component.user.RemoveHelper;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.MoreDelegate;
+import org.thunderdog.challegram.singbox.ProxyLatencyMonitor;
+import org.thunderdog.challegram.singbox.ProxySubscriptionManager;
 import org.thunderdog.challegram.telegram.ConnectionListener;
 import org.thunderdog.challegram.telegram.ConnectionState;
 import org.thunderdog.challegram.telegram.GlobalProxyPingListener;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibContext;
 import org.thunderdog.challegram.theme.ColorId;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
@@ -49,12 +52,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import android.app.AlertDialog;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 
-public class SettingsProxyController extends RecyclerViewController<Void> implements View.OnLongClickListener, View.OnClickListener, Settings.ProxyChangeListener, ConnectionListener, MoreDelegate, GlobalProxyPingListener {
+public class SettingsProxyController extends RecyclerViewController<Void> implements View.OnLongClickListener, View.OnClickListener, Settings.ProxyChangeListener, ConnectionListener, MoreDelegate, GlobalProxyPingListener, ProxySubscriptionManager.SubscriptionChangeListener {
   public SettingsProxyController (Context context, Tdlib tdlib) {
     super(context, tdlib);
   }
@@ -76,8 +84,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   @Override
   protected void openMoreMenu () {
-    IntList ids = new IntList(2);
-    StringList strings = new StringList(2);
+    IntList ids = new IntList(4);
+    StringList strings = new StringList(4);
     ids.append(R.id.btn_toggleErrors);
     strings.append(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SHOW_ERRORS) ? R.string.ProxyHideErrors : R.string.ProxyShowErrors);
 
@@ -88,6 +96,16 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         ids.append(R.id.btn_sortByPing);
         strings.append(R.string.ProxyReorderByPing);
       }
+    }
+
+    if (subscriptions != null && !subscriptions.isEmpty()) {
+      ids.append(R.id.btn_refreshAllSubscriptions);
+      strings.append(R.string.ProxyRefreshAllSubscriptions);
+    }
+
+    if (!proxies.isEmpty()) {
+      ids.append(R.id.btn_pingAll);
+      strings.append(R.string.ProxyPingAll);
     }
 
     if (BuildConfig.DEBUG) {
@@ -179,6 +197,10 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         }
       });
       saveProxiesOrder();
+    } else if (id == R.id.btn_refreshAllSubscriptions) {
+      ProxySubscriptionManager.instance().refreshAllSubscriptions(null);
+    } else if (id == R.id.btn_pingAll) {
+      pingProxies();
     }
   }
 
@@ -214,6 +236,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   private SettingsAdapter adapter;
   private List<Settings.Proxy> proxies;
+  private List<Settings.Subscription> subscriptions;
   private final Settings.Proxy noProxy = Settings.Proxy.noProxy(false);
   private int effectiveProxyId;
 
@@ -400,9 +423,10 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     if (this.hasProxyAutoSwitchSettings != canSwitchAutomatically) {
       this.hasProxyAutoSwitchSettings = canSwitchAutomatically;
       if (canSwitchAutomatically) {
-        int i = adapter.indexOfViewById(R.id.btn_addProxy);
-        if (i != -1) {
-          adapter.addItems(i + 2, newAutoSwitchItems());
+        // Insert before the Connections header (which is 2 items before btn_noProxy)
+        int noProxyIdx = adapter.indexOfViewById(R.id.btn_noProxy);
+        if (noProxyIdx >= 2) {
+          adapter.addItems(noProxyIdx - 2, newAutoSwitchItems());
         }
       } else {
         int i = adapter.indexOfViewById(R.id.btn_proxyAutoSwitch);
@@ -440,6 +464,20 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addProxy, 0, R.string.ProxyAdd)); // TODO design: icon
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyInfo));
+
+    // Subscription section
+    this.subscriptions = ProxySubscriptionManager.instance().getSubscriptions();
+    if (!subscriptions.isEmpty()) {
+      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProxySubscriptions));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addSubscription, 0, R.string.ProxyAddSubscription));
+      for (Settings.Subscription sub : subscriptions) {
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        items.add(newSubscriptionItem(sub));
+      }
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxySubscriptionInfo));
+    }
 
     hasProxyAutoSwitchSettings = !proxies.isEmpty();
     if (hasProxyAutoSwitchSettings) {
@@ -486,6 +524,17 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
           radioView.setChecked(proxy.id == effectiveProxyId, isUpdate);
         } else if (itemId == R.id.btn_useProxyForCalls) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_USE_FOR_CALLS), isUpdate);
+        } else if (itemId == R.id.btn_subscription) {
+          Settings.Subscription sub = (Settings.Subscription) item.getData();
+          if (sub != null) {
+            view.setName(sub.getDisplayName());
+            if (sub.lastUpdateTime > 0) {
+              view.setData(Lang.getString(R.string.ProxySubscriptionLastUpdate,
+                Lang.dateYearFull(sub.lastUpdateTime / 1000, java.util.concurrent.TimeUnit.SECONDS)));
+            } else {
+              view.setData(R.string.ProxySubscriptionNeverUpdated);
+            }
+          }
         }
       }
     };
@@ -548,6 +597,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     Settings.instance().addProxyListener(this);
     tdlib.listeners().subscribeToConnectivityUpdates(this);
     tdlib.context().global().addProxyListener(this);
+    ProxySubscriptionManager.instance().addListener(this);
   }
 
   private void removeProxy (Settings.Proxy proxy) {
@@ -583,12 +633,223 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     }
   }
 
+  private static ListItem newSubscriptionItem (@NonNull Settings.Subscription sub) {
+    return new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_subscription).setLongId(sub.id).setData(sub);
+  }
+
+  private void showAddSubscriptionDialog () {
+    LinearLayout layout = new LinearLayout(context);
+    layout.setOrientation(LinearLayout.VERTICAL);
+    int padding = Screen.dp(16f);
+    layout.setPadding(padding, padding, padding, 0);
+
+    final EditText urlInput = new EditText(context);
+    urlInput.setHint(R.string.ProxySubscriptionUrl);
+    urlInput.setSingleLine(true);
+    layout.addView(urlInput, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+
+    final EditText nameInput = new EditText(context);
+    nameInput.setHint(R.string.ProxySubscriptionName);
+    nameInput.setSingleLine(true);
+    layout.addView(nameInput, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+
+    new AlertDialog.Builder(context)
+      .setTitle(Lang.getString(R.string.ProxyAddSubscription))
+      .setView(layout)
+      .setPositiveButton(Lang.getString(R.string.Done), (dialog, which) -> {
+        String url = urlInput.getText().toString().trim();
+        String name = nameInput.getText().toString().trim();
+        if (url.isEmpty() || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+          UI.showToast(R.string.ProxySubscriptionInvalidUrl, Toast.LENGTH_SHORT);
+          return;
+        }
+        ProxySubscriptionManager.instance().addSubscription(url, name.isEmpty() ? null : name, 86400000L);
+      })
+      .setNegativeButton(Lang.getString(R.string.Cancel), null)
+      .show();
+  }
+
+  private void showSubscriptionOptions (Settings.Subscription sub) {
+    IntList ids = new IntList(3);
+    StringList strings = new StringList(3);
+    IntList colors = new IntList(3);
+    IntList icons = new IntList(3);
+
+    ids.append(R.id.btn_refreshSubscription);
+    strings.append(R.string.ProxyRefreshAllSubscriptions);
+    icons.append(R.drawable.baseline_replay_24);
+    colors.append(OptionColor.NORMAL);
+
+    ids.append(R.id.btn_removeProxy);
+    strings.append(R.string.ProxySubscriptionRemove);
+    icons.append(R.drawable.baseline_delete_24);
+    colors.append(OptionColor.RED);
+
+    showOptions(sub.getDisplayName(), ids.get(), strings.get(), colors.get(), icons.get(), (itemView, id) -> {
+      if (id == R.id.btn_refreshSubscription) {
+        ProxySubscriptionManager.instance().refreshSubscription(sub.id, null);
+      } else if (id == R.id.btn_removeProxy) {
+        showOptions(Lang.getString(R.string.ProxySubscriptionRemoveConfirm), new int[] {R.id.btn_removeProxy, R.id.btn_cancel}, new String[] {Lang.getString(R.string.ProxySubscriptionRemove), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (v2, confirmId) -> {
+          if (confirmId == R.id.btn_removeProxy) {
+            ProxySubscriptionManager.instance().removeSubscription(sub.id);
+          }
+          return true;
+        });
+      }
+      return true;
+    });
+  }
+
+  // ProxySubscriptionManager.SubscriptionChangeListener
+
+  @Override
+  public void onSubscriptionAdded (Settings.Subscription subscription) {
+    runOnUiThreadOptional(() -> {
+      if (subscriptions == null) subscriptions = new ArrayList<>();
+      subscriptions.add(subscription);
+      ensureSubscriptionSectionExists();
+      int addSubIndex = adapter.indexOfViewById(R.id.btn_addSubscription);
+      if (addSubIndex != -1) {
+        int insertAt = addSubIndex + 1 + (subscriptions.size() - 1) * 2;
+        adapter.getItems().add(insertAt, newSubscriptionItem(subscription));
+        adapter.getItems().add(insertAt, new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        adapter.notifyItemRangeInserted(insertAt, 2);
+      }
+    });
+  }
+
+  @Override
+  public void onSubscriptionUpdated (Settings.Subscription subscription) {
+    runOnUiThreadOptional(() -> {
+      if (subscriptions != null) {
+        for (int i = 0; i < subscriptions.size(); i++) {
+          if (subscriptions.get(i).id == subscription.id) {
+            subscriptions.set(i, subscription);
+            break;
+          }
+        }
+      }
+      if (adapter != null) {
+        int idx = adapter.indexOfViewByLongId(subscription.id);
+        if (idx != -1) {
+          ListItem item = adapter.getItems().get(idx);
+          if (item.getId() == R.id.btn_subscription) {
+            item.setData(subscription);
+            adapter.notifyItemChanged(idx);
+          }
+        }
+      }
+    });
+  }
+
+  @Override
+  public void onSubscriptionRemoved (int subscriptionId) {
+    runOnUiThreadOptional(() -> {
+      if (subscriptions != null) {
+        subscriptions.removeIf(s -> s.id == subscriptionId);
+      }
+      if (adapter != null) {
+        int idx = adapter.indexOfViewByLongId(subscriptionId);
+        if (idx != -1) {
+          adapter.removeRange(idx - 1, 2);
+          if (subscriptions != null && subscriptions.isEmpty()) {
+            removeSubscriptionSection();
+          }
+        }
+      }
+      // Reload proxies since subscription removal also removes proxies
+      this.proxies = Settings.instance().getAvailableProxies();
+    });
+  }
+
+  @Override
+  public void onSubscriptionRefreshStarted (int subscriptionId) {
+    runOnUiThreadOptional(() -> {
+      if (adapter != null) {
+        int idx = adapter.indexOfViewByLongId(subscriptionId);
+        if (idx != -1) {
+          // Will show "Refreshing..." via the setValuedSetting
+        }
+      }
+    });
+  }
+
+  @Override
+  public void onSubscriptionRefreshCompleted (int subscriptionId, boolean success, int added, int removed) {
+    runOnUiThreadOptional(() -> {
+      if (success) {
+        if (added > 0 || removed > 0) {
+          // Reload the proxy list
+          this.proxies = Settings.instance().getAvailableProxies();
+          // Refresh the whole adapter since proxies may have changed
+          rebuildProxyList();
+          UI.showToast(Lang.getString(R.string.ProxySubscriptionRefreshSuccess, added, removed), Toast.LENGTH_SHORT);
+        }
+      } else {
+        UI.showToast(R.string.ProxySubscriptionRefreshError, Toast.LENGTH_SHORT);
+      }
+    });
+  }
+
+  private void ensureSubscriptionSectionExists () {
+    if (adapter.indexOfViewById(R.id.btn_addSubscription) != -1) return;
+    // Insert subscription section after ProxyInfo description
+    int infoIndex = 2; // index of ProxyInfo description
+    List<ListItem> newItems = new ArrayList<>();
+    newItems.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProxySubscriptions));
+    newItems.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    newItems.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addSubscription, 0, R.string.ProxyAddSubscription));
+    newItems.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    newItems.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxySubscriptionInfo));
+    adapter.addItems(infoIndex + 1, newItems.toArray(new ListItem[0]));
+  }
+
+  private void removeSubscriptionSection () {
+    int addSubIndex = adapter.indexOfViewById(R.id.btn_addSubscription);
+    if (addSubIndex == -1) return;
+    // Remove from header (addSubIndex - 2) through description (addSubIndex + 2)
+    int start = addSubIndex - 2;
+    int count = 5; // header, shadow_top, add_subscription, shadow_bottom, description
+    adapter.removeRange(start, count);
+  }
+
+  private void rebuildProxyList () {
+    // Find proxy section and rebuild it
+    int noProxyIndex = adapter.indexOfViewById(R.id.btn_noProxy);
+    if (noProxyIndex == -1) return;
+
+    // Remove old proxy items (everything between noProxy and the shadow_bottom after it)
+    int endIndex = noProxyIndex + 1;
+    while (endIndex < adapter.getItemCount()) {
+      ListItem item = adapter.getItems().get(endIndex);
+      if (item.getViewType() == ListItem.TYPE_SHADOW_BOTTOM) break;
+      endIndex++;
+    }
+    if (endIndex > noProxyIndex + 1) {
+      adapter.removeRange(noProxyIndex + 1, endIndex - noProxyIndex - 1);
+    }
+
+    // Insert new proxy items
+    List<ListItem> newItems = new ArrayList<>();
+    for (Settings.Proxy proxy : proxies) {
+      newItems.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      newItems.add(newProxyItem(proxy));
+      pingProxy(proxy, true);
+    }
+    if (!newItems.isEmpty()) {
+      adapter.addItems(noProxyIndex + 1, newItems.toArray(new ListItem[0]));
+    }
+
+    checkAutoSwitchItems();
+  }
+
   @Override
   public void destroy () {
     super.destroy();
     Settings.instance().removeProxyListener(this);
     tdlib.listeners().unsubscribeFromConnectivityUpdates(this);
     tdlib.context().global().removeProxyListener(this);
+    ProxySubscriptionManager.instance().removeListener(this);
   }
 
   @Override
@@ -605,11 +866,13 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
             Settings.PROXY_FLAG_SWITCH_ALLOW_DIRECT,
           true
         );
+        ProxyLatencyMonitor.instance().startMonitoring();
         if (tdlib.isConnectingOrUpdating()) {
           tdlib.resolveConnectionIssues();
         }
       } else {
         Settings.instance().setProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY, false);
+        ProxyLatencyMonitor.instance().stopMonitoring();
       }
     } else if (viewId == R.id.btn_addProxy) {
       tdlib.ui().addNewProxy(this, false);
@@ -618,10 +881,21 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       if (proxy.id == effectiveProxyId) {
         showProxyOptions(proxy);
       } else if (proxy.proxy != null) {
-        Settings.instance().addOrUpdateProxy(proxy.proxy, null, true);
+        if (proxy.isSingBox()) {
+          Settings.instance().enableProxy(proxy.id);
+        } else {
+          Settings.instance().addOrUpdateProxy(proxy.proxy, null, true);
+        }
       }
     } else if (viewId == R.id.btn_useProxyForCalls) {
       Settings.instance().setProxySetting(Settings.PROXY_FLAG_USE_FOR_CALLS, adapter.toggleView(v));
+    } else if (viewId == R.id.btn_addSubscription) {
+      showAddSubscriptionDialog();
+    } else if (viewId == R.id.btn_subscription) {
+      Settings.Subscription sub = (Settings.Subscription) item.getData();
+      if (sub != null) {
+        showSubscriptionOptions(sub);
+      }
     }
   }
 
@@ -700,9 +974,15 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
           }
         });
       } else if (id == R.id.btn_editProxy) {
-        EditProxyController c = new EditProxyController(context, tdlib);
-        c.setArguments(new EditProxyController.Args(proxy));
-        navigateTo(c);
+        if (proxy.isSingBox()) {
+          EditSingBoxProxyController c = new EditSingBoxProxyController(context, tdlib);
+          c.setArguments(new EditSingBoxProxyController.Args(proxy));
+          navigateTo(c);
+        } else {
+          EditProxyController c = new EditProxyController(context, tdlib);
+          c.setArguments(new EditProxyController.Args(proxy));
+          navigateTo(c);
+        }
       } else if (id == R.id.btn_removeProxy) {
         removeProxy(proxy);
       }
@@ -767,27 +1047,23 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     }
   }
 
+  private int getNoProxyIndex () {
+    return adapter.indexOfViewById(R.id.btn_noProxy);
+  }
+
   private int cellIndexToProxyIndex (int cellIndex) {
-    int headerItemCount = 7;
-    if (hasProxyAutoSwitchSettings) {
-      headerItemCount += 4;
-    }
-    if (cellIndex < headerItemCount)
+    int noProxyIndex = getNoProxyIndex();
+    if (noProxyIndex == -1 || cellIndex <= noProxyIndex)
       return -1;
-    cellIndex -= headerItemCount;
-    if (cellIndex > 0)
-      cellIndex /= 2;
-    if (cellIndex >= proxies.size() || cellIndex < 0)
+    int relativeIndex = (cellIndex - noProxyIndex - 1) / 2;
+    if (relativeIndex >= proxies.size() || relativeIndex < 0)
       return -1;
-    return cellIndex;
+    return relativeIndex;
   }
 
   private int indexOfProxyCellByProxyIndex (int proxyIndex, int proxyId) {
-    int headerItemCount = 7;
-    if (hasProxyAutoSwitchSettings) {
-      headerItemCount += 4;
-    }
-    int index = headerItemCount + proxyIndex * 2;
+    int noProxyIndex = getNoProxyIndex();
+    int index = noProxyIndex + 2 + proxyIndex * 2;
     if (proxyId != -1 && indexOfProxy(proxyId) != index)
       throw new IllegalStateException("index: " + index + ", proxyIndex: " + indexOfProxy(proxyId));
     return index;
@@ -795,7 +1071,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   private int indexOfProxy (int proxyId) {
     if (proxyId == Settings.PROXY_ID_NONE) {
-      return 5 + (hasProxyAutoSwitchSettings ? 4 : 0); // adapter.indexOfViewById(R.id.btn_noProxy);
+      return getNoProxyIndex();
     } else {
       return adapter.indexOfViewByLongId(proxyId);
     }
@@ -844,10 +1120,11 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   }
 
   private void resetProxyPing (int cellIndex) {
-    Settings.Proxy info = (Settings.Proxy) adapter.getItems().get(cellIndex).getData();
-    if (info == null) {
-      info = noProxy;
+    Object data = adapter.getItems().get(cellIndex).getData();
+    if (!(data instanceof Settings.Proxy)) {
+      return;
     }
+    Settings.Proxy info = (Settings.Proxy) data;
     if (info.pingMs < 0 && info.pingMs != Settings.PROXY_TIME_LOADING) {
       pingProxy(info, true);
     }

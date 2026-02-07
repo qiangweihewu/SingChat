@@ -152,6 +152,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
   private static final boolean INFINITE_MODE = false;
   private static final boolean USE_TEXTURE_VIEW = false;
   private View surfaceView;
+  private android.widget.ImageView appIconView;
   private TextLayout textLayout;
 
   private boolean hidden;
@@ -934,6 +935,36 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
       this.surfaceView = surfaceView;
     }
 
+    // App icon overlay (replaces OpenGL sphere on page 0)
+    appIconView = new android.widget.ImageView(context) {
+      @Override
+      protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+        int iconAreaHeight;
+        if (width >= height) {
+          width = width / 2;
+          iconAreaHeight = height;
+        } else {
+          iconAreaHeight = Math.min(width, height / 2);
+        }
+        int iconSize = Math.min(width, iconAreaHeight) * 2 / 3;
+        super.onMeasure(
+          MeasureSpec.makeMeasureSpec(iconSize, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(iconSize, MeasureSpec.EXACTLY)
+        );
+      }
+    };
+    appIconView.setImageDrawable(context.getPackageManager().getApplicationIcon(context.getApplicationInfo()));
+    appIconView.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+    FrameLayoutFix.LayoutParams iconParams = FrameLayoutFix.newParams(
+      ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+      Gravity.TOP | Gravity.CENTER_HORIZONTAL
+    );
+    iconParams.topMargin = HeaderView.getTopOffset();
+    appIconView.setLayoutParams(iconParams);
+    contentView.addView(appIconView);
+
     /*baseTitle = genTitle();
     previewTitle = genTitle();
 
@@ -1346,7 +1377,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
     if (descs[pos] != null) {
       return descs[pos];
     } else {
-      String text = getString(getTitleString(pos, true));
+      String text = Lang.getBuiltinString(getTitleString(pos, true));
       return (descs[pos] = Strings.replaceBoldTokens(text, ColorId.text));
     }
   }
@@ -1355,7 +1386,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
 
   private String getTitle (int pos) {
     if (titles[pos] == null) {
-      return (titles[pos] = getString(getTitleString(pos, false)));
+      return (titles[pos] = Lang.getBuiltinString(getTitleString(pos, false)));
     }
     return titles[pos];
   }
@@ -1664,6 +1695,14 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
     textLayout.setFactor(positionOffset, actualOffset);
     N.setScrollOffset(actualOffset);
     requestRender(); // TODO limit render
+    // Fade app icon overlay: visible only on page 0
+    if (appIconView != null) {
+      if (position == 0) {
+        appIconView.setAlpha(1f - positionOffset);
+      } else {
+        appIconView.setAlpha(0f);
+      }
+    }
   }
 
   private float calculateActualOffset (int position) {
@@ -1847,11 +1886,10 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
     if (bitmap != null) {
       return bitmap;
     }
+    // Fill with background color to hide native "Fast" page elements drawn behind the sphere
     int size = Screen.dp(220f);
     bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-    Canvas c = new Canvas(bitmap);
-    c.drawCircle(bitmap.getWidth() / 2, bitmap.getHeight() / 2, bitmap.getWidth() / 2, Paints.fillingPaint(0xff35a6de));
-    U.recycle(c);
+    bitmap.eraseColor(Theme.fillingColor());
     synchronized (icons) {
       iconsSpecial.put(0, bitmap);
     }
@@ -1900,7 +1938,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
 
     N.setTelegramTextures(
       loadTexture(gl, getSphereBitmap()),
-      loadTexture(gl, R.drawable.intro_tg_plane)
+      loadTexture(gl, Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     );
 
     N.setPowerfulTextures(

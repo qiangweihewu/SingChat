@@ -100,6 +100,7 @@ import org.thunderdog.challegram.ui.EditDeleteAccountReasonController;
 import org.thunderdog.challegram.ui.EditNameController;
 import org.thunderdog.challegram.ui.EditProxyController;
 import org.thunderdog.challegram.ui.EditRightsController;
+import org.thunderdog.challegram.ui.EditSingBoxProxyController;
 import org.thunderdog.challegram.ui.EditUsernameController;
 import org.thunderdog.challegram.ui.InstantViewController;
 import org.thunderdog.challegram.ui.ListItem;
@@ -4169,21 +4170,28 @@ public class TdlibUi extends Handler {
 
     boolean showShowQr = tdlib.allowQrLoginCamera();
 
-    IntList ids = new IntList(showShowQr ? 4 : 3);
-    StringList strings = new StringList(showShowQr ? 4 : 3);
+    int baseCount = 5; // SOCKS5, MTPROTO, HTTP, sing-box, subscription
+    IntList ids = new IntList(showShowQr ? baseCount + 1 : baseCount);
+    StringList strings = new StringList(showShowQr ? baseCount + 1 : baseCount);
 
     ids.append(R.id.btn_proxyTelegram);
     ids.append(R.id.btn_proxySocks5);
     ids.append(R.id.btn_proxyHttp);
+    ids.append(R.id.btn_proxySingBox);
+    ids.append(R.id.btn_addSubscription);
 
     if (needProxyHint) {
       strings.append(R.string.AddMtprotoProxy);
       strings.append(R.string.AddSocks5Proxy);
       strings.append(R.string.AddHttpProxy);
+      strings.append(R.string.AddSingBoxProxy);
+      strings.append(R.string.ProxyAddSubscription);
     } else {
       strings.append(R.string.MtprotoProxy);
       strings.append(R.string.Socks5Proxy);
       strings.append(R.string.HttpProxy);
+      strings.append(R.string.SingBoxProxy);
+      strings.append(R.string.ProxyAddSubscription);
     }
 
     if (showShowQr) {
@@ -4204,6 +4212,12 @@ public class TdlibUi extends Handler {
         EditProxyController e = new EditProxyController(context.context(), context.tdlib());
         e.setArguments(new EditProxyController.Args(EditProxyController.MODE_HTTP));
         c.navigateTo(e);
+      } else if (id == R.id.btn_proxySingBox) {
+        EditSingBoxProxyController e = new EditSingBoxProxyController(context.context(), context.tdlib());
+        e.setArguments(new EditSingBoxProxyController.Args(EditSingBoxProxyController.MODE_VLESS));
+        c.navigateTo(e);
+      } else if (id == R.id.btn_addSubscription) {
+        showAddSubscriptionDialog(context, c);
       } else if (id == R.id.btn_proxyQr) {
         postDelayed(() -> c.openInAppCamera(new ViewController.CameraOpenOptions().ignoreAnchor(true).noTrace(true).allowSystem(false).optionalMicrophone(true).qrModeSubtitle(R.string.ScanQRFullSubtitleProxy).mode(CameraController.MODE_QR).qrCodeListener((qrCode) -> {
           context.tdlib().client().send(new TdApi.GetInternalLinkType(qrCode), result -> {
@@ -4234,6 +4248,39 @@ public class TdlibUi extends Handler {
     } else {
       c.showOptions(needProxyHint ? Lang.getString(R.string.ProxyInfo) : null, ids.get(), strings.get(), callback);
     }
+  }
+
+  private void showAddSubscriptionDialog (TdlibDelegate context, ViewController<?> c) {
+    android.widget.LinearLayout layout = new android.widget.LinearLayout(c.context());
+    layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+    int padding = org.thunderdog.challegram.tool.Screen.dp(16f);
+    layout.setPadding(padding, padding, padding, 0);
+
+    final android.widget.EditText urlInput = new android.widget.EditText(c.context());
+    urlInput.setHint(R.string.ProxySubscriptionUrl);
+    urlInput.setSingleLine(true);
+    layout.addView(urlInput, android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+
+    final android.widget.EditText nameInput = new android.widget.EditText(c.context());
+    nameInput.setHint(R.string.ProxySubscriptionName);
+    nameInput.setSingleLine(true);
+    layout.addView(nameInput, android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+
+    new android.app.AlertDialog.Builder(c.context())
+      .setTitle(Lang.getString(R.string.ProxyAddSubscription))
+      .setView(layout)
+      .setPositiveButton(Lang.getString(R.string.Done), (dialog, which) -> {
+        String url = urlInput.getText().toString().trim();
+        String name = nameInput.getText().toString().trim();
+        if (url.isEmpty() || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+          UI.showToast(R.string.ProxySubscriptionInvalidUrl, android.widget.Toast.LENGTH_SHORT);
+          return;
+        }
+        org.thunderdog.challegram.singbox.ProxySubscriptionManager.instance().addSubscription(url, name.isEmpty() ? null : name, 86400000L);
+        c.navigateTo(new org.thunderdog.challegram.ui.SettingsProxyController(c.context(), context.tdlib()));
+      })
+      .setNegativeButton(Lang.getString(R.string.Cancel), null)
+      .show();
   }
 
   public void handleTermsOfService (TdApi.UpdateTermsOfService update) {

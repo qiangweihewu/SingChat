@@ -1,6 +1,5 @@
 # [Telegram X](https://play.google.com/store/apps/details?id=org.thunderdog.challegram): Change Logs 
 
-![Telegram X](/images/feature.png)
 
 This file is a collection of full blog posts about major [**Telegram X** for Android](http://play.google.com/store/apps/details?id=org.thunderdog.challegram) updates. Note not all major updates had one, as some of them were limited to the change log on Google Play platform. 
 

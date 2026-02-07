@@ -11,13 +11,13 @@ sdk.dir=
 keystore.file=
 
 ## Package name
-app.id=org.example.tgx
+app.id=com.singchat.app
 
 ## Project name
-app.name=TGX Example
+app.name=SingChat
 
 ## Link to the app's website. If unavailable, link to the market page could be used.
-app.download_url=https://telegram.org/dlx
+app.download_url=https://github.com/qiangweihewu/SingChat
 
 ## Obtain credentials to access Telegram API:
 # https://core.telegram.org/api/obtaining_api_id
